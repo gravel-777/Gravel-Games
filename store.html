@@ -467,7 +467,6 @@
         const floor = new THREE.Mesh(new THREE.BoxGeometry(24, 0.4, 24), new THREE.MeshStandardMaterial({ color: 0x272e3f, roughness: 0.8 }));
         floor.position.y = -0.2; floor.receiveShadow = true; scene.add(floor);
 
-        // КРАСИВЫЕ СТЕНЫ МАГАЗИНА С ВХОДОМ И СТЕКЛЯННЫМИ ДВЕРЯМИ
         const wallMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.5 });
         const trimMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.3 });
         const glassDoorMat = new THREE.MeshStandardMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.4, roughness: 0.1 });
@@ -476,29 +475,23 @@
         function createStoreWalls() {
             const wallGroup = new THREE.Group();
 
-            // Северная стенка (задняя)
             const north = new THREE.Mesh(new THREE.BoxGeometry(24.4, 3.5, 0.4), wallMat); north.position.set(0, 1.75, -12.2); wallGroup.add(north);
             const northTrim = new THREE.Mesh(new THREE.BoxGeometry(24.4, 0.2, 0.5), trimMat); northTrim.position.set(0, 0.1, -12.2); wallGroup.add(northTrim);
 
-            // Западная стенка (левая)
             const west = new THREE.Mesh(new THREE.BoxGeometry(0.4, 3.5, 24.4), wallMat); west.position.set(-12.2, 1.75, 0); wallGroup.add(west);
             const westTrim = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.2, 24.4), trimMat); westTrim.position.set(-12.2, 0.1, 0); wallGroup.add(westTrim);
 
-            // Южная стенка (передняя с проемом под двери)
             const southLeft = new THREE.Mesh(new THREE.BoxGeometry(9.2, 3.5, 0.4), wallMat); southLeft.position.set(-7.6, 1.75, 12.2); wallGroup.add(southLeft);
             const southRight = new THREE.Mesh(new THREE.BoxGeometry(9.2, 3.5, 0.4), wallMat); southRight.position.set(7.6, 1.75, 12.2); wallGroup.add(southRight);
             const southTop = new THREE.Mesh(new THREE.BoxGeometry(6, 1.0, 0.4), wallMat); southTop.position.set(0, 3.0, 12.2); wallGroup.add(southTop);
 
-            // Стеклянная дверь и Рама (Центр входа z = 12.2)
             const doorFrameLeft = new THREE.Mesh(new THREE.BoxGeometry(0.2, 2.5, 0.5), doorFrameMat); doorFrameLeft.position.set(-2.9, 1.25, 12.2); wallGroup.add(doorFrameLeft);
             const doorFrameRight = new THREE.Mesh(new THREE.BoxGeometry(0.2, 2.5, 0.5), doorFrameMat); doorFrameRight.position.set(2.9, 1.25, 12.2); wallGroup.add(doorFrameRight);
             const doorFrameTop = new THREE.Mesh(new THREE.BoxGeometry(6.0, 0.2, 0.5), doorFrameMat); doorFrameTop.position.set(0, 2.5, 12.2); wallGroup.add(doorFrameTop);
 
-            // Две стеклянные створки
             const door1 = new THREE.Mesh(new THREE.BoxGeometry(2.7, 2.3, 0.1), glassDoorMat); door1.position.set(-1.35, 1.15, 12.2); wallGroup.add(door1);
             const door2 = new THREE.Mesh(new THREE.BoxGeometry(2.7, 2.3, 0.1), glassDoorMat); door2.position.set(1.35, 1.15, 12.2); wallGroup.add(door2);
 
-            // Ручки дверей
             const handle1 = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.6, 0.18), trimMat); handle1.position.set(-0.2, 1.15, 12.2); wallGroup.add(handle1);
             const handle2 = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.6, 0.18), trimMat); handle2.position.set(0.2, 1.15, 12.2); wallGroup.add(handle2);
 
@@ -513,7 +506,6 @@
             obstacles.push(obstacle); return obstacle;
         }
 
-        // ВОЗВРАЩЕНЫ КЛАССИЧЕСКИЕ ЛЮБИМЫЕ ПОЛКИ
         function createShelf(x, z) {
             const group = new THREE.Group();
             const woodMat = new THREE.MeshStandardMaterial({ color: 0x374151, roughness: 0.6 });
@@ -530,7 +522,6 @@
             return shelfObj;
         }
 
-        // МОРОЗИЛЬНИК (Оставлен крутой имбовой моделью!)
         function createFreezer(x, z) {
             const group = new THREE.Group();
             const bodyMat = new THREE.MeshStandardMaterial({ color: 0x0284c7, roughness: 0.3 });
@@ -549,29 +540,25 @@
             return freezerObj;
         }
 
-        // КАССА: ТЕПЕРЬ РАЗВЕРНУТА В ПРАВИЛЬНУЮ СТОРОНУ!
         function createCashierStand(x, z) {
             const group = new THREE.Group();
             const deskMat = new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.5 });
             const registerMat = new THREE.MeshStandardMaterial({ color: 0x1f2937, roughness: 0.3 });
             const screenMat = new THREE.MeshStandardMaterial({ color: 0x22c55e, roughness: 0.2, emissive: 0x0f5132 });
 
-            // Стол
             const counter = new THREE.Mesh(new THREE.BoxGeometry(2.2, 1.1, 3.2), deskMat);
             counter.position.y = 0.55;
             counter.castShadow = true;
             counter.receiveShadow = true;
             group.add(counter);
 
-            // Кассовый аппарат
             const regBase = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.25, 0.7), registerMat);
             regBase.position.set(0, 1.225, 0.2);
             group.add(regBase);
 
-            // Экран развернут в сторону кассира/покупателей (наклон по Z)
             const regScreen = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.35, 0.08), registerMat);
             regScreen.position.set(0, 1.5, 0.38);
-            regScreen.rotation.x = Math.PI / 12; // Развернут экран
+            regScreen.rotation.x = Math.PI / 12;
             group.add(regScreen);
 
             const display = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.27, 0.02), screenMat);
@@ -579,7 +566,6 @@
             display.rotation.x = Math.PI / 12;
             group.add(display);
 
-            // Сканер
             const scanner = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.15, 0.25), registerMat);
             scanner.position.set(-0.6, 1.175, -0.4);
             group.add(scanner);
@@ -959,12 +945,12 @@
                 animateCharacter(restockerMesh, 0.15, isWorkerMoving);
             }
 
-            // ИИ ПОКУПАТЕЛЕЙ (Входят и выходят через стеклянные двери)
+            // ИИ ПОКУПАТЕЛЕЙ
             customerTimer++;
             if (customerTimer > 140 && customers.length < 4) {
                 const colors = [0x8b5cf6, 0xec4899, 0x14b8a6, 0xf59e0b];
                 const cMesh = createMiniMartCharacter(colors[Math.floor(Math.random() * colors.length)], 0x2563eb);
-                cMesh.position.set(0, 0, 12.0); // Появляются у дверей
+                cMesh.position.set(0, 0, 12.0);
                 scene.add(cMesh);
 
                 let wantCount = (shopLevel >= 3) ? Math.floor(Math.random() * 3) + 1 : 1;
@@ -1056,7 +1042,7 @@
                 }
 
                 if (c.state === 'LEAVE') {
-                    targetX = 0; targetZ = 12.2; // Выходят ровно через двери
+                    targetX = 0; targetZ = 12.2;
                     if (getDist(c.mesh.position.x, c.mesh.position.z, targetX, targetZ) < 0.5) {
                         scene.remove(c.mesh); customers.splice(i, 1); continue;
                     }
