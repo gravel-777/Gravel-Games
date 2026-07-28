@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gravel Games</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #0f172a;
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        header h1 {
+            font-size: 2.8rem;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #38bdf8, #818cf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        header p {
+            color: #94a3b8;
+            font-size: 1.1rem;
+        }
+
+        /* Сетка карточек карт */
+        .games-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 25px;
+            width: 100%;
+            max-width: 900px;
+        }
+
+        /* Карточка игры */
+        .game-card {
+            background: #1e293b;
+            border: 2px solid #334155;
+            border-radius: 20px;
+            padding: 30px 20px;
+            text-decoration: none;
+            color: inherit;
+            transition: all 0.25s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            cursor: pointer;
+        }
+
+        .game-card:hover {
+            transform: translateY(-8px);
+            border-color: #38bdf8;
+            box-shadow: 0 10px 25px rgba(56, 189, 248, 0.2);
+            background: #243347;
+        }
+
+        .card-icon {
+            font-size: 4rem;
+            margin-bottom: 15px;
+        }
+
+        .game-card h2 {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+            color: #f8fafc;
+        }
+
+        .game-card p {
+            font-size: 0.95rem;
+            color: #94a3b8;
+            line-height: 1.4;
+        }
+
+        /* Карточка будущего проекта */
+        .coming-soon {
+            opacity: 0.5;
+            border-style: dashed;
+        }
+
+        .coming-soon:hover {
+            transform: none;
+            border-color: #334155;
+            box-shadow: none;
+            background: #1e293b;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>🎮 Gravel Games</h1>
+        <p>Выбери игру, чтобы начать!</p>
+    </header>
+
+    <main class="games-grid">
+
+        <!-- Игра 1: Симулятор Магазина -->
+        <a href="store.html" class="game-card">
+            <div class="card-icon">🏪</div>
+            <h2>My Mart</h2>
+            <p>Симулятор 3D-магазина: продавай товары, прокачивай полки и нанимай кассира!</p>
+        </a>
+
+        <!-- Игра 2: Скоро будет -->
+        <div class="game-card coming-soon">
+            <div class="card-icon">❓</div>
+            <h2>Новая Игра</h2>
+            <p>Скоро сделаем тут новую игру вместе!</p>
+        </div>
+
+    </main>
+
+</body>
+</html>

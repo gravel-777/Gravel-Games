@@ -1,0 +1,1093 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>My Mart game</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #0d0f14;
+            user-select: none;
+        }
+
+        #ui-container {
+            position: absolute;
+            top: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            z-index: 10;
+        }
+
+        .stats-bar {
+            display: flex;
+            gap: 20px;
+            background: rgba(20, 24, 33, 0.9);
+            padding: 10px 24px;
+            border-radius: 16px;
+            color: white;
+            font-size: 17px;
+            font-weight: 700;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+            border: 1px solid rgba(255,255,255,0.15);
+            backdrop-filter: blur(8px);
+        }
+
+        .price-info {
+            background: rgba(20, 24, 33, 0.85);
+            color: #a6e3a1;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            text-align: center;
+            border: 1px solid rgba(166, 227, 161, 0.2);
+        }
+
+        .controls-bar {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            transform: translateX(-35px);
+        }
+
+        button.action-btn {
+            background: linear-gradient(135deg, #ff007f, #b30059);
+            color: white;
+            border: none;
+            padding: 10px 18px;
+            font-size: 14px;
+            font-weight: bold;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 15px rgba(255, 0, 127, 0.3);
+        }
+
+        button.red-btn {
+            background: linear-gradient(135deg, #e63946, #9b1d27);
+            box-shadow: 0 4px 15px rgba(230, 57, 70, 0.3);
+        }
+        button.worker-btn {
+            background: linear-gradient(135deg, #3a86ff, #1d4ed8);
+            box-shadow: 0 4px 15px rgba(58, 134, 255, 0.3);
+        }
+
+        .upgrade-top-right {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            z-index: 10;
+        }
+
+        button.action-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            filter: brightness(1.1);
+        }
+
+        button:disabled {
+            background: #333947 !important;
+            color: #777 !important;
+            cursor: not-allowed;
+            box-shadow: none !important;
+            transform: none !important;
+        }
+
+        #unstuckBtn {
+            display: none;
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white;
+            border: 2px solid #fef08a;
+            padding: 12px 24px;
+            font-size: 15px;
+            font-weight: bold;
+            border-radius: 12px;
+            cursor: pointer;
+            z-index: 20;
+            box-shadow: 0 0 20px rgba(245, 158, 11, 0.6);
+            animation: pulse 1s infinite alternate;
+        }
+
+        @keyframes pulse {
+            0% { transform: translateX(-50%) scale(1); }
+            100% { transform: translateX(-50%) scale(1.05); }
+        }
+
+        .promo-bar {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            gap: 8px;
+            background: rgba(20, 24, 33, 0.9);
+            padding: 8px 12px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            border: 1px solid rgba(255,255,255,0.1);
+            z-index: 10;
+        }
+
+        .promo-bar input {
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid #333947;
+            background: #1a1e29;
+            color: #fff;
+            font-weight: bold;
+            outline: none;
+            width: 120px;
+            text-transform: lowercase;
+            font-size: 14px;
+        }
+
+        .promo-bar button {
+            padding: 8px 14px;
+            background: linear-gradient(135deg, #2ec4b6, #208b82);
+            font-size: 13px;
+            border-radius: 8px;
+            border: none;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        #game-over-modal {
+            display: none;
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(10, 12, 16, 0.9);
+            z-index: 100;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+        }
+
+        #game-over-modal h1 { font-size: 48px; color: #ff4d4d; margin-bottom: 10px; }
+        #game-over-modal button { padding: 14px 28px; font-size: 18px; background: #2ec4b6; border: none; border-radius: 10px; color: white; font-weight: bold; cursor: pointer; }
+    </style>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+
+    <div class="upgrade-top-right">
+        <button id="upgradeBtn" class="action-btn" onclick="upgradeShop()">⬆️ Апгрейд (<span id="upCost">150</span>$)</button>
+    </div>
+
+    <div id="ui-container">
+        <div class="stats-bar">
+            <div>💰 Деньги: <span id="money">50</span> $</div>
+            <div>🏬 Уровень: <span id="level">1 / 4</span></div>
+            <div>📦 Руки: <span id="hands">Пусто</span></div>
+        </div>
+
+        <div class="price-info">
+            🥚 10$ | 🍅 15$ | 🍞 25$ | 🧀 40$ || 🧊 🥛 50$ | 🐟 75$ | 🥩 120$
+        </div>
+
+        <div class="controls-bar">
+            <button class="action-btn" onclick="buyStock()">📦 Коробка (10$)</button>
+            <button id="redStockBtn" class="action-btn red-btn" onclick="buyRedStock()" disabled>🧊 Коробка 2 (25$)</button>
+            <button id="helperBtn" class="action-btn" onclick="buyHelper()">👨‍🍳 Кассир (100$)</button>
+        </div>
+    </div>
+
+    <button id="unstuckBtn" onclick="unstuckPlayer()">🚨 Застрял (Unstuck)</button>
+
+    <div class="promo-bar">
+        <input type="text" id="promoInput" placeholder="Промокод..." onkeydown="if(event.key==='Enter') applyPromo()">
+        <button onclick="applyPromo()">ОК</button>
+    </div>
+
+    <div id="game-over-modal">
+        <h1>💸 БАНКРОТСТВО!</h1>
+        <p>У вас закончились деньги и продукты.</p>
+        <button onclick="restartGame()">🔄 Начать заново</button>
+    </div>
+
+    <script>
+        // --- 1. СЦЕНА И КАМЕРА ---
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x131722);
+
+        const aspect = window.innerWidth / window.innerHeight;
+        const d = 14;
+        const camera = new THREE.OrthographicCamera(-d * aspect, d * aspect, d, -d, 1, 1000);
+        camera.position.set(18, 22, 18);
+        camera.lookAt(0, 0, 0);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        document.body.appendChild(renderer.domElement);
+
+        // --- 2. ОСВЕЩЕНИЕ ---
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.85);
+        scene.add(ambientLight);
+
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        dirLight.position.set(15, 25, 12);
+        dirLight.castShadow = true;
+        dirLight.shadow.mapSize.width = 2048;
+        dirLight.shadow.mapSize.height = 2048;
+        scene.add(dirLight);
+
+        // --- 3. ТОВАРЫ ---
+        const PLAYER_SHELF_PRODS = [
+            { name: '🥚 Яйцо', price: 10, chance: 40, type: 'egg' },
+            { name: '🍅 Помидор', price: 15, chance: 30, type: 'tomato' },
+            { name: '🍞 Хлеб', price: 25, chance: 20, type: 'bread' },
+            { name: '🧀 Сыр', price: 40, chance: 10, type: 'cheese' }
+        ];
+
+        const FREEZER_PRODS = [
+            { name: '🥛 Молоко', price: 50, chance: 50, type: 'milk' },
+            { name: '🐟 Рыба', price: 75, chance: 35, type: 'fish' },
+            { name: '🥩 Говядина', price: 120, chance: 15, type: 'meat' }
+        ];
+
+        function getRandomProduct(list) {
+            let rand = Math.random() * 100;
+            let sum = 0;
+            for (let item of list) {
+                sum += item.chance;
+                if (rand <= sum) return item;
+            }
+            return list[0];
+        }
+
+        // --- 4. СОСТОЯНИЕ ИГРЫ ---
+        let money = 50;
+        let shopLevel = 1;
+        let upgradeCosts = [150, 300, 500];
+        let stockCount = 0;
+        let redStockCount = 0;
+        let maxStock = 3;
+
+        let hasCashier = false;
+        let hasRestocker = false;
+        let usedPromos = new Set();
+        let heldBoxType = null;
+
+        let shelf1Items = [];
+        let shelf2Items = [];
+        let freezer1Items = [];
+        let freezer2Items = [];
+        const maxShelf = 5;
+
+        let stockVisualBoxes = [];
+        let redStockVisualBoxes = [];
+        let customers = [];
+        let customerTimer = 0;
+
+        let restockerMesh = null;
+        let restockerState = 'IDLE';
+
+        let playerVelX = 0;
+        let playerVelZ = 0;
+        const obstacles = [];
+
+        let stuckTimer = 0;
+
+        // --- 5. ПЕРСОНАЖИ ---
+        function createMiniMartCharacter(shirtColorHex, capColorHex = 0x2563eb) {
+            const group = new THREE.Group();
+
+            const skinMat = new THREE.MeshStandardMaterial({ color: 0xffdbac, roughness: 0.3 });
+            const shirtMat = new THREE.MeshStandardMaterial({ color: shirtColorHex, roughness: 0.4 });
+            const capMat = new THREE.MeshStandardMaterial({ color: capColorHex, roughness: 0.3 });
+            const pantsMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.5 });
+
+            const head = new THREE.Mesh(new THREE.SphereGeometry(0.42, 24, 24), skinMat);
+            head.position.set(0, 1.35, 0);
+            head.castShadow = true;
+            group.add(head);
+
+            if (capColorHex !== null) {
+                const capTop = new THREE.Mesh(new THREE.SphereGeometry(0.44, 16, 16, 0, Math.PI * 2, 0, Math.PI / 2), capMat);
+                capTop.position.set(0, 1.38, 0);
+                group.add(capTop);
+
+                const visor = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.04, 0.32), capMat);
+                visor.position.set(0, 1.4, 0.4);
+                group.add(visor);
+            }
+
+            const body = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.25, 0.65, 16), shirtMat);
+            body.position.set(0, 0.8, 0);
+            body.castShadow = true;
+            group.add(body);
+
+            const legGeo = new THREE.CylinderGeometry(0.09, 0.08, 0.45, 12);
+            const legLeft = new THREE.Mesh(legGeo, pantsMat);
+            legLeft.position.set(-0.13, 0.22, 0);
+            legLeft.castShadow = true;
+
+            const legRight = new THREE.Mesh(legGeo, pantsMat);
+            legRight.position.set(0.13, 0.22, 0);
+            legRight.castShadow = true;
+
+            group.add(legLeft); group.add(legRight);
+
+            const armGeo = new THREE.CylinderGeometry(0.08, 0.07, 0.45, 12);
+            const armLeft = new THREE.Mesh(armGeo, shirtMat);
+            armLeft.position.set(-0.35, 0.8, 0);
+            armLeft.castShadow = true;
+
+            const armRight = new THREE.Mesh(armGeo, shirtMat);
+            armRight.position.set(0.35, 0.8, 0);
+            armRight.castShadow = true;
+
+            group.add(armLeft); group.add(armRight);
+
+            group.head = head; group.body = body;
+            group.legLeft = legLeft; group.legRight = legRight;
+            group.armLeft = armLeft; group.armRight = armRight;
+
+            return group;
+        }
+
+        function animateCharacter(group, speed, isMoving) {
+            if (!group.walkCycle) group.walkCycle = 0;
+            if (isMoving) {
+                group.walkCycle += speed;
+                let c = group.walkCycle;
+                group.legLeft.rotation.x = Math.sin(c) * 0.65;
+                group.legRight.rotation.x = -Math.sin(c) * 0.65;
+                group.armLeft.rotation.x = -Math.sin(c) * 0.55;
+                group.armRight.rotation.x = Math.sin(c) * 0.55;
+            } else {
+                group.legLeft.rotation.x = 0; group.legRight.rotation.x = 0;
+                group.armLeft.rotation.x = 0; group.armRight.rotation.x = 0;
+            }
+        }
+
+        // --- 6. МОДЕЛЬ ИГРОКА И ТЕЛЕЖКИ ---
+        const playerGroup = createMiniMartCharacter(0xff007f, 0xff007f);
+
+        const heldNormalBox = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.5, 0.6), new THREE.MeshStandardMaterial({ color: 0xd97706 }));
+        heldNormalBox.position.set(0, 0.85, 0.45); heldNormalBox.visible = false;
+        playerGroup.add(heldNormalBox);
+
+        const heldRedBox = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.5, 0.6), new THREE.MeshStandardMaterial({ color: 0xef4444 }));
+        heldRedBox.position.set(0, 0.85, 0.45); heldRedBox.visible = false;
+        playerGroup.add(heldRedBox);
+
+        playerGroup.position.set(0, 0, 4);
+        scene.add(playerGroup);
+
+        function createCartMesh() {
+            const group = new THREE.Group();
+            const redMat = new THREE.MeshStandardMaterial({ color: 0xef4444 });
+
+            const basket = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.5, 1.0), new THREE.MeshStandardMaterial({ color: 0x9ca3af, wireframe: true }));
+            basket.position.set(0, 0.65, 0); group.add(basket);
+
+            const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.7), redMat);
+            handle.rotation.z = Math.PI / 2; handle.position.set(0, 0.95, -0.55); group.add(handle);
+
+            const wheelGeo = new THREE.CylinderGeometry(0.08, 0.08, 0.04, 12);
+            wheelGeo.rotateZ(Math.PI / 2);
+            const wMat = new THREE.MeshStandardMaterial({ color: 0x1f2937 });
+
+            [[-0.35, 0.08, 0.35], [0.35, 0.08, 0.35], [-0.35, 0.08, -0.35], [0.35, 0.08, -0.35]].forEach(pos => {
+                const w = new THREE.Mesh(wheelGeo, wMat);
+                w.position.set(...pos); group.add(w);
+            });
+            return group;
+        }
+
+        // --- 7. МОДЕЛИ ПРОДУКТОВ ---
+        function createProductMesh3D(product, x, y, z) {
+            const group = new THREE.Group();
+
+            if (product.type === 'egg') {
+                const egg = new THREE.Mesh(new THREE.SphereGeometry(0.18, 16, 16), new THREE.MeshStandardMaterial({ color: 0xfef08a, roughness: 0.5 }));
+                egg.scale.set(1, 1.3, 1);
+                group.add(egg);
+            } else if (product.type === 'tomato') {
+                const tom = new THREE.Mesh(new THREE.SphereGeometry(0.2, 16, 16), new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.3 }));
+                const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.08), new THREE.MeshStandardMaterial({ color: 0x22c55e }));
+                stem.position.y = 0.18; group.add(tom); group.add(stem);
+            } else if (product.type === 'bread') {
+                const bread = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.25, 0.3), new THREE.MeshStandardMaterial({ color: 0xb45309, roughness: 0.8 }));
+                group.add(bread);
+            } else if (product.type === 'cheese') {
+                const cheese = new THREE.Mesh(new THREE.ConeGeometry(0.25, 0.25, 3), new THREE.MeshStandardMaterial({ color: 0xeab308, roughness: 0.4 }));
+                cheese.rotation.x = Math.PI / 2; group.add(cheese);
+            } else if (product.type === 'milk') {
+                const carton = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.55, 0.32), new THREE.MeshStandardMaterial({ color: 0x2563eb, roughness: 0.3 }));
+                const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.06), new THREE.MeshStandardMaterial({ color: 0xffffff }));
+                cap.position.y = 0.3; group.add(carton); group.add(cap);
+            } else if (product.type === 'fish') {
+                const body = new THREE.Mesh(new THREE.ConeGeometry(0.18, 0.6, 12), new THREE.MeshStandardMaterial({ color: 0x0284c7, roughness: 0.2 }));
+                body.rotation.z = Math.PI / 2;
+                const tail = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.25, 0.04), new THREE.MeshStandardMaterial({ color: 0x0369a1 }));
+                tail.position.x = -0.35; group.add(body); group.add(tail);
+            } else if (product.type === 'meat') {
+                const meatMat = new THREE.MeshStandardMaterial({ color: 0x9f1239, roughness: 0.4 });
+                const fatMat = new THREE.MeshStandardMaterial({ color: 0xfff1f2, roughness: 0.5 });
+                const boneMat = new THREE.MeshStandardMaterial({ color: 0xfef3c7, roughness: 0.3 });
+
+                const steak = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.14, 0.38), meatMat);
+                group.add(steak);
+
+                const fat1 = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.15, 0.06), fatMat);
+                fat1.position.z = 0.18; group.add(fat1);
+
+                const boneMain = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.45), boneMat);
+                boneMain.rotation.z = Math.PI / 2;
+                boneMain.position.y = 0.08;
+                group.add(boneMain);
+
+                const boneCross = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.22), boneMat);
+                boneCross.rotation.x = Math.PI / 2;
+                boneCross.position.set(0.1, 0.08, 0);
+                group.add(boneCross);
+            }
+
+            group.position.set(x, y, z);
+            scene.add(group);
+            return group;
+        }
+
+        // --- 8. КАРТА, СТЕНЫ И ЗДАНИЕ ---
+        const floor = new THREE.Mesh(new THREE.BoxGeometry(24, 0.4, 24), new THREE.MeshStandardMaterial({ color: 0x272e3f, roughness: 0.8 }));
+        floor.position.y = -0.2; floor.receiveShadow = true; scene.add(floor);
+
+        // КРАСИВЫЕ СТЕНЫ МАГАЗИНА С ВХОДОМ И СТЕКЛЯННЫМИ ДВЕРЯМИ
+        const wallMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.5 });
+        const trimMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.3 });
+        const glassDoorMat = new THREE.MeshStandardMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.4, roughness: 0.1 });
+        const doorFrameMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.2 });
+
+        function createStoreWalls() {
+            const wallGroup = new THREE.Group();
+
+            // Северная стенка (задняя)
+            const north = new THREE.Mesh(new THREE.BoxGeometry(24.4, 3.5, 0.4), wallMat); north.position.set(0, 1.75, -12.2); wallGroup.add(north);
+            const northTrim = new THREE.Mesh(new THREE.BoxGeometry(24.4, 0.2, 0.5), trimMat); northTrim.position.set(0, 0.1, -12.2); wallGroup.add(northTrim);
+
+            // Западная стенка (левая)
+            const west = new THREE.Mesh(new THREE.BoxGeometry(0.4, 3.5, 24.4), wallMat); west.position.set(-12.2, 1.75, 0); wallGroup.add(west);
+            const westTrim = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.2, 24.4), trimMat); westTrim.position.set(-12.2, 0.1, 0); wallGroup.add(westTrim);
+
+            // Южная стенка (передняя с проемом под двери)
+            const southLeft = new THREE.Mesh(new THREE.BoxGeometry(9.2, 3.5, 0.4), wallMat); southLeft.position.set(-7.6, 1.75, 12.2); wallGroup.add(southLeft);
+            const southRight = new THREE.Mesh(new THREE.BoxGeometry(9.2, 3.5, 0.4), wallMat); southRight.position.set(7.6, 1.75, 12.2); wallGroup.add(southRight);
+            const southTop = new THREE.Mesh(new THREE.BoxGeometry(6, 1.0, 0.4), wallMat); southTop.position.set(0, 3.0, 12.2); wallGroup.add(southTop);
+
+            // Стеклянная дверь и Рама (Центр входа z = 12.2)
+            const doorFrameLeft = new THREE.Mesh(new THREE.BoxGeometry(0.2, 2.5, 0.5), doorFrameMat); doorFrameLeft.position.set(-2.9, 1.25, 12.2); wallGroup.add(doorFrameLeft);
+            const doorFrameRight = new THREE.Mesh(new THREE.BoxGeometry(0.2, 2.5, 0.5), doorFrameMat); doorFrameRight.position.set(2.9, 1.25, 12.2); wallGroup.add(doorFrameRight);
+            const doorFrameTop = new THREE.Mesh(new THREE.BoxGeometry(6.0, 0.2, 0.5), doorFrameMat); doorFrameTop.position.set(0, 2.5, 12.2); wallGroup.add(doorFrameTop);
+
+            // Две стеклянные створки
+            const door1 = new THREE.Mesh(new THREE.BoxGeometry(2.7, 2.3, 0.1), glassDoorMat); door1.position.set(-1.35, 1.15, 12.2); wallGroup.add(door1);
+            const door2 = new THREE.Mesh(new THREE.BoxGeometry(2.7, 2.3, 0.1), glassDoorMat); door2.position.set(1.35, 1.15, 12.2); wallGroup.add(door2);
+
+            // Ручки дверей
+            const handle1 = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.6, 0.18), trimMat); handle1.position.set(-0.2, 1.15, 12.2); wallGroup.add(handle1);
+            const handle2 = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.6, 0.18), trimMat); handle2.position.set(0.2, 1.15, 12.2); wallGroup.add(handle2);
+
+            scene.add(wallGroup);
+        }
+        createStoreWalls();
+
+        const MAP_BOUNDS = { minX: -11.5, maxX: 11.5, minZ: -11.5, maxZ: 11.5 };
+
+        function registerObstacle(x, z, width, depth, activeRef = null) {
+            const obstacle = { minX: x - width / 2, maxX: x + width / 2, minZ: z - depth / 2, maxZ: z + depth / 2, activeRef: activeRef };
+            obstacles.push(obstacle); return obstacle;
+        }
+
+        // ВОЗВРАЩЕНЫ КЛАССИЧЕСКИЕ ЛЮБИМЫЕ ПОЛКИ
+        function createShelf(x, z) {
+            const group = new THREE.Group();
+            const woodMat = new THREE.MeshStandardMaterial({ color: 0x374151, roughness: 0.6 });
+
+            const base = new THREE.Mesh(new THREE.BoxGeometry(3.5, 0.2, 1.4), woodMat); base.position.y = 0.1; group.add(base);
+            const top = new THREE.Mesh(new THREE.BoxGeometry(3.5, 0.1, 1.4), woodMat); top.position.y = 1.1; group.add(top);
+
+            const p1 = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.0, 1.4), woodMat); p1.position.set(-1.7, 0.6, 0); group.add(p1);
+            const p2 = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.0, 1.4), woodMat); p2.position.set(1.7, 0.6, 0); group.add(p2);
+
+            group.position.set(x, 0, z); scene.add(group);
+            const shelfObj = { group, x, z, active: true };
+            registerObstacle(x, z, 3.5, 1.4, shelfObj);
+            return shelfObj;
+        }
+
+        // МОРОЗИЛЬНИК (Оставлен крутой имбовой моделью!)
+        function createFreezer(x, z) {
+            const group = new THREE.Group();
+            const bodyMat = new THREE.MeshStandardMaterial({ color: 0x0284c7, roughness: 0.3 });
+            const glassMat = new THREE.MeshStandardMaterial({ color: 0xbae6fd, transparent: true, opacity: 0.5 });
+            const chromeMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, metalness: 0.9, roughness: 0.1 });
+
+            const body = new THREE.Mesh(new THREE.BoxGeometry(3.5, 0.8, 1.5), bodyMat); body.position.y = 0.4; group.add(body);
+            const glass = new THREE.Mesh(new THREE.BoxGeometry(3.3, 0.05, 1.3), glassMat); glass.position.set(0, 0.82, 0); group.add(glass);
+
+            const rim = new THREE.Mesh(new THREE.BoxGeometry(3.52, 0.06, 1.52), chromeMat); rim.position.y = 0.8; group.add(rim);
+            const handle = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.04, 0.1), chromeMat); handle.position.set(0, 0.86, 0.5); group.add(handle);
+
+            group.position.set(x, 0, z); scene.add(group);
+            const freezerObj = { group, x, z, active: false };
+            registerObstacle(x, z, 3.5, 1.5, freezerObj);
+            return freezerObj;
+        }
+
+        // КАССА: ТЕПЕРЬ РАЗВЕРНУТА В ПРАВИЛЬНУЮ СТОРОНУ!
+        function createCashierStand(x, z) {
+            const group = new THREE.Group();
+            const deskMat = new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.5 });
+            const registerMat = new THREE.MeshStandardMaterial({ color: 0x1f2937, roughness: 0.3 });
+            const screenMat = new THREE.MeshStandardMaterial({ color: 0x22c55e, roughness: 0.2, emissive: 0x0f5132 });
+
+            // Стол
+            const counter = new THREE.Mesh(new THREE.BoxGeometry(2.2, 1.1, 3.2), deskMat);
+            counter.position.y = 0.55;
+            counter.castShadow = true;
+            counter.receiveShadow = true;
+            group.add(counter);
+
+            // Кассовый аппарат
+            const regBase = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.25, 0.7), registerMat);
+            regBase.position.set(0, 1.225, 0.2);
+            group.add(regBase);
+
+            // Экран развернут в сторону кассира/покупателей (наклон по Z)
+            const regScreen = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.35, 0.08), registerMat);
+            regScreen.position.set(0, 1.5, 0.38);
+            regScreen.rotation.x = Math.PI / 12; // Развернут экран
+            group.add(regScreen);
+
+            const display = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.27, 0.02), screenMat);
+            display.position.set(0, 1.5, 0.335);
+            display.rotation.x = Math.PI / 12;
+            group.add(display);
+
+            // Сканер
+            const scanner = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.15, 0.25), registerMat);
+            scanner.position.set(-0.6, 1.175, -0.4);
+            group.add(scanner);
+
+            group.position.set(x, 0, z);
+            scene.add(group);
+
+            const cashierObj = { group, x, z, active: true };
+            registerObstacle(x, z, 2.2, 3.2, cashierObj);
+            return cashierObj;
+        }
+
+        const shelf1 = createShelf(-2, -7);
+        const shelf2 = createShelf(4, -7); shelf2.group.visible = false; shelf2.active = false;
+        const freezer1 = createFreezer(1, -1); freezer1.group.visible = false; freezer1.active = false;
+        const freezer2 = createFreezer(-6, -1); freezer2.group.visible = false; freezer2.active = false;
+        const zoneCashier = createCashierStand(7, 5);
+
+        const zoneStock = { x: -8, z: 2 };
+        const zoneRedStock = { x: -8, z: 7 };
+        const cartParking = { x: -3, z: 8 };
+
+        const cartParkGroup = new THREE.Group();
+        const parkZoneMesh = new THREE.Mesh(new THREE.BoxGeometry(3, 0.05, 2), new THREE.MeshStandardMaterial({ color: 0xf59e0b }));
+        parkZoneMesh.position.y = 0.02; cartParkGroup.add(parkZoneMesh);
+        for(let i=0; i<3; i++) {
+            const dummyCart = createCartMesh(); dummyCart.position.set(-0.8 + i*0.8, 0, 0); cartParkGroup.add(dummyCart);
+        }
+        cartParkGroup.position.set(cartParking.x, 0, cartParking.z); cartParkGroup.visible = false; scene.add(cartParkGroup);
+
+        function createStockAreaVisual(x, z, borderHex) {
+            const group = new THREE.Group();
+            const base = new THREE.Mesh(new THREE.BoxGeometry(3.0, 0.12, 3.0), new THREE.MeshStandardMaterial({ color: 0x78350f }));
+            base.position.y = 0.06; group.add(base);
+            const border = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.05, 3.2), new THREE.MeshStandardMaterial({ color: borderHex }));
+            border.position.y = 0.03; group.add(border);
+            group.position.set(x, 0, z); scene.add(group);
+            return group;
+        }
+
+        const normalPalletVisual = createStockAreaVisual(zoneStock.x, zoneStock.z, 0x10b981);
+        const redPalletVisual = createStockAreaVisual(zoneRedStock.x, zoneRedStock.z, 0xef4444);
+        redPalletVisual.visible = false;
+
+        function updateStock3D() {
+            stockVisualBoxes.forEach(b => scene.remove(b));
+            stockVisualBoxes = [];
+            for (let i = 0; i < stockCount; i++) {
+                const box = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.5, 0.65), new THREE.MeshStandardMaterial({ color: 0xd97706 }));
+                box.position.set(zoneStock.x - 0.5 + (i % 2) * 0.8, 0.35 + Math.floor(i / 2) * 0.55, zoneStock.z);
+                scene.add(box); stockVisualBoxes.push(box);
+            }
+
+            redStockVisualBoxes.forEach(b => scene.remove(b));
+            redStockVisualBoxes = [];
+            for (let i = 0; i < redStockCount; i++) {
+                const box = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.5, 0.65), new THREE.MeshStandardMaterial({ color: 0xef4444 }));
+                box.position.set(zoneRedStock.x - 0.5 + (i % 2) * 0.8, 0.35 + Math.floor(i / 2) * 0.55, zoneRedStock.z);
+                scene.add(box); redStockVisualBoxes.push(box);
+            }
+        }
+
+        function checkCollision(targetX, targetZ, radius = 0.45) {
+            for (let obs of obstacles) {
+                if (obs.activeRef && !obs.activeRef.active) continue;
+                if (targetX + radius > obs.minX && targetX - radius < obs.maxX &&
+                    targetZ + radius > obs.minZ && targetZ - radius < obs.maxZ) return true;
+            }
+            return false;
+        }
+
+        function unstuckPlayer() {
+            playerGroup.position.set(5, 0, 5);
+            stuckTimer = 0;
+            document.getElementById('unstuckBtn').style.display = 'none';
+        }
+
+        // --- 9. КНОПКИ И УПРАВЛЕНИЕ ---
+        const keys = {};
+        window.addEventListener('keydown', e => keys[e.code] = true);
+        window.addEventListener('keyup', e => keys[e.code] = false);
+
+        function updateUI() {
+            document.getElementById('money').textContent = money;
+            document.getElementById('level').textContent = shopLevel + " / 4";
+
+            const upBtn = document.getElementById('upgradeBtn');
+            if (shopLevel < 4) {
+                document.getElementById('upCost').textContent = upgradeCosts[shopLevel - 1];
+            } else {
+                upBtn.disabled = true;
+                upBtn.textContent = 'MAX Уровень';
+            }
+
+            let handsText = "Пусто";
+            if (heldBoxType === 'normal') handsText = "📦";
+            if (heldBoxType === 'red') handsText = "🧊";
+            document.getElementById('hands').textContent = handsText;
+
+            checkGameOver();
+        }
+
+        function applyPromo() {
+            const input = document.getElementById('promoInput');
+            const code = input.value.trim().toLowerCase();
+            if (code === 'gravel') {
+                if (!usedPromos.has('gravel')) {
+                    money += 1000; usedPromos.add('gravel');
+                    alert('🎉 Промокод gravel активирован! +1000$!'); updateUI();
+                } else alert('❌ Вы уже использовали этот промокод!');
+            } else alert('❌ Неверный промокод!');
+            input.value = '';
+        }
+
+        function buyStock() {
+            if (money >= 10 && stockCount < maxStock) {
+                money -= 10; stockCount++; updateStock3D(); updateUI();
+            }
+        }
+
+        function buyRedStock() {
+            if (money >= 25 && redStockCount < maxStock && shopLevel >= 3) {
+                money -= 25; redStockCount++; updateStock3D(); updateUI();
+            }
+        }
+
+        function buyHelper() {
+            const btn = document.getElementById('helperBtn');
+
+            if (!hasCashier && money >= 100) {
+                money -= 100; hasCashier = true;
+                const cashier = createMiniMartCharacter(0x0284c7, null);
+                cashier.position.set(8.2, 0, 5); cashier.rotation.y = -Math.PI / 2;
+                scene.add(cashier);
+                btn.textContent = '👨‍💼 Грузчик (200$)'; btn.classList.add('worker-btn');
+                updateUI();
+            } else if (hasCashier && !hasRestocker && money >= 200) {
+                money -= 200; hasRestocker = true;
+                restockerMesh = createMiniMartCharacter(0x10b981, 0x10b981);
+                restockerMesh.position.set(-6, 0, 0);
+
+                const rBox = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.5, 0.6), new THREE.MeshStandardMaterial({ color: 0xd97706 }));
+                rBox.position.set(0, 0.85, 0.45); rBox.visible = false;
+                restockerMesh.add(rBox); restockerMesh.heldBox = rBox;
+                scene.add(restockerMesh);
+
+                btn.disabled = true; btn.textContent = '👨‍💼 Грузчик нанят';
+                updateUI();
+            }
+        }
+
+        function upgradeShop() {
+            if (shopLevel >= 4) return;
+
+            let cost = upgradeCosts[shopLevel - 1];
+            if (money >= cost) {
+                money -= cost;
+                shopLevel++;
+
+                if (shopLevel === 2) {
+                    shelf2.group.visible = true; shelf2.active = true;
+                    maxStock = 5;
+                } else if (shopLevel === 3) {
+                    freezer1.group.visible = true; freezer1.active = true;
+                    redPalletVisual.visible = true;
+                    cartParkGroup.visible = true;
+                    document.getElementById('redStockBtn').disabled = false;
+                } else if (shopLevel === 4) {
+                    freezer2.group.visible = true; freezer2.active = true;
+                    maxStock = 8;
+                }
+
+                updateUI();
+            }
+        }
+
+        function getDist(x1, z1, x2, z2) { return Math.hypot(x1 - x2, z1 - z2); }
+
+        function checkGameOver() {
+            if (money < 10 && stockCount === 0 && redStockCount === 0 && !heldBoxType &&
+                shelf1Items.length === 0 && shelf2Items.length === 0 && freezer1Items.length === 0 && freezer2Items.length === 0) {
+                document.getElementById('game-over-modal').style.display = 'flex';
+            }
+        }
+
+        function restartGame() { location.reload(); }
+
+        // --- 10. ИГРОВОЙ ЦИКЛ ---
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // Движение игрока
+            let targetVelX = 0; let targetVelZ = 0; const maxSpeed = 0.13;
+            if (keys['KeyW'] || keys['ArrowUp']) targetVelZ -= maxSpeed;
+            if (keys['KeyS'] || keys['ArrowDown']) targetVelZ += maxSpeed;
+            if (keys['KeyA'] || keys['ArrowLeft']) targetVelX -= maxSpeed;
+            if (keys['KeyD'] || keys['ArrowRight']) targetVelX += maxSpeed;
+
+            playerVelX += (targetVelX - playerVelX) * 0.15;
+            playerVelZ += (targetVelZ - playerVelZ) * 0.15;
+
+            let nextX = playerGroup.position.x + playerVelX;
+            let nextZ = playerGroup.position.z + playerVelZ;
+
+            if (nextX >= MAP_BOUNDS.minX && nextX <= MAP_BOUNDS.maxX) {
+                if (!checkCollision(nextX, playerGroup.position.z)) playerGroup.position.x = nextX;
+            }
+            if (nextZ >= MAP_BOUNDS.minZ && nextZ <= MAP_BOUNDS.maxZ) {
+                if (!checkCollision(playerGroup.position.x, nextZ)) playerGroup.position.z = nextZ;
+            }
+
+            let isMoving = Math.hypot(playerVelX, playerVelZ) > 0.01;
+            if (isMoving) playerGroup.rotation.y = Math.atan2(playerVelX, playerVelZ);
+            animateCharacter(playerGroup, 0.18, isMoving);
+
+            // Проверка застревания
+            let isInsideObstacle = checkCollision(playerGroup.position.x, playerGroup.position.z, 0.1);
+            if (isInsideObstacle) {
+                stuckTimer++;
+                if (stuckTimer > 300) {
+                    document.getElementById('unstuckBtn').style.display = 'block';
+                }
+            } else {
+                stuckTimer = 0;
+                document.getElementById('unstuckBtn').style.display = 'none';
+            }
+
+            // Взятие коробок
+            if (getDist(playerGroup.position.x, playerGroup.position.z, zoneStock.x, zoneStock.z) < 2.2) {
+                if (!heldBoxType && stockCount > 0) {
+                    stockCount--; heldBoxType = 'normal'; heldNormalBox.visible = true; updateStock3D(); updateUI();
+                }
+            }
+            if (shopLevel >= 3 && getDist(playerGroup.position.x, playerGroup.position.z, zoneRedStock.x, zoneRedStock.z) < 2.2) {
+                if (!heldBoxType && redStockCount > 0) {
+                    redStockCount--; heldBoxType = 'red'; heldRedBox.visible = true; updateStock3D(); updateUI();
+                }
+            }
+
+            // Выгрузка на полки
+            if (getDist(playerGroup.position.x, playerGroup.position.z, shelf1.x, shelf1.z) < 2.2) {
+                if (heldBoxType === 'normal' && shelf1Items.length < maxShelf) {
+                    heldBoxType = null; heldNormalBox.visible = false;
+                    const randProd = getRandomProduct(PLAYER_SHELF_PRODS);
+                    const pMesh = createProductMesh3D(randProd, shelf1.x - 1.2 + shelf1Items.length * 0.6, 1.25, shelf1.z);
+                    shelf1Items.push({ product: randProd, mesh: pMesh }); updateUI();
+                }
+            }
+            if (shopLevel >= 2 && getDist(playerGroup.position.x, playerGroup.position.z, shelf2.x, shelf2.z) < 2.2) {
+                if (heldBoxType === 'normal' && shelf2Items.length < maxShelf) {
+                    heldBoxType = null; heldNormalBox.visible = false;
+                    const randProd = getRandomProduct(PLAYER_SHELF_PRODS);
+                    const pMesh = createProductMesh3D(randProd, shelf2.x - 1.2 + shelf2Items.length * 0.6, 1.25, shelf2.z);
+                    shelf2Items.push({ product: randProd, mesh: pMesh }); updateUI();
+                }
+            }
+
+            // Выгрузка в морозильники
+            if (shopLevel >= 3 && getDist(playerGroup.position.x, playerGroup.position.z, freezer1.x, freezer1.z) < 2.2) {
+                if (heldBoxType === 'red' && freezer1Items.length < maxShelf) {
+                    heldBoxType = null; heldRedBox.visible = false;
+                    const randProd = getRandomProduct(FREEZER_PRODS);
+                    const pMesh = createProductMesh3D(randProd, freezer1.x - 1.2 + freezer1Items.length * 0.6, 1.05, freezer1.z);
+                    freezer1Items.push({ product: randProd, mesh: pMesh }); updateUI();
+                }
+            }
+
+            if (shopLevel >= 4 && getDist(playerGroup.position.x, playerGroup.position.z, freezer2.x, freezer2.z) < 2.2) {
+                if (heldBoxType === 'red' && freezer2Items.length < maxShelf) {
+                    heldBoxType = null; heldRedBox.visible = false;
+                    const randProd = getRandomProduct(FREEZER_PRODS);
+                    const pMesh = createProductMesh3D(randProd, freezer2.x - 1.2 + freezer2Items.length * 0.6, 1.05, freezer2.z);
+                    freezer2Items.push({ product: randProd, mesh: pMesh }); updateUI();
+                }
+            }
+
+            // ИИ ГРУЗЧИКА
+            if (hasRestocker && restockerMesh) {
+                let rSpeed = 0.08;
+                let targetX = restockerMesh.position.x;
+                let targetZ = restockerMesh.position.z;
+                let isWorkerMoving = false;
+
+                if (restockerState === 'IDLE') {
+                    if (stockCount > 0 && shelf1Items.length < maxShelf) restockerState = 'GET_NORMAL_1';
+                    else if (stockCount > 0 && shopLevel >= 2 && shelf2Items.length < maxShelf) restockerState = 'GET_NORMAL_2';
+                    else if (redStockCount > 0 && shopLevel >= 3 && freezer1Items.length < maxShelf) restockerState = 'GET_RED_1';
+                    else if (redStockCount > 0 && shopLevel >= 4 && freezer2Items.length < maxShelf) restockerState = 'GET_RED_2';
+                }
+
+                if (restockerState.startsWith('GET_NORMAL')) {
+                    targetX = zoneStock.x; targetZ = zoneStock.z + 1.8;
+                    if (getDist(restockerMesh.position.x, restockerMesh.position.z, targetX, targetZ) < 0.4) {
+                        if (stockCount > 0) {
+                            stockCount--; restockerMesh.heldBox.material.color.setHex(0xd97706);
+                            restockerMesh.heldBox.visible = true; updateStock3D();
+                            if (restockerState === 'GET_NORMAL_1') restockerState = 'DELIVER_SHELF1';
+                            else if (restockerState === 'GET_NORMAL_2') restockerState = 'DELIVER_SHELF2';
+                        } else restockerState = 'IDLE';
+                    }
+                }
+
+                if (restockerState.startsWith('GET_RED')) {
+                    targetX = zoneRedStock.x; targetZ = zoneRedStock.z + 1.8;
+                    if (getDist(restockerMesh.position.x, restockerMesh.position.z, targetX, targetZ) < 0.4) {
+                        if (redStockCount > 0) {
+                            redStockCount--; restockerMesh.heldBox.material.color.setHex(0xef4444);
+                            restockerMesh.heldBox.visible = true; updateStock3D();
+                            if (restockerState === 'GET_RED_1') restockerState = 'DELIVER_FREEZER1';
+                            else if (restockerState === 'GET_RED_2') restockerState = 'DELIVER_FREEZER2';
+                        } else restockerState = 'IDLE';
+                    }
+                }
+
+                if (restockerState === 'DELIVER_SHELF1') {
+                    targetX = shelf1.x; targetZ = shelf1.z + 1.8;
+                    if (getDist(restockerMesh.position.x, restockerMesh.position.z, targetX, targetZ) < 0.4) {
+                        if (shelf1Items.length < maxShelf) {
+                            restockerMesh.heldBox.visible = false;
+                            const luckyProd = getRandomProduct(PLAYER_SHELF_PRODS);
+                            const pMesh = createProductMesh3D(luckyProd, shelf1.x - 1.2 + shelf1Items.length * 0.6, 1.25, shelf1.z);
+                            shelf1Items.push({ product: luckyProd, mesh: pMesh });
+                        }
+                        restockerState = 'IDLE';
+                    }
+                }
+
+                if (restockerState === 'DELIVER_SHELF2') {
+                    targetX = shelf2.x; targetZ = shelf2.z + 1.8;
+                    if (getDist(restockerMesh.position.x, restockerMesh.position.z, targetX, targetZ) < 0.4) {
+                        if (shelf2Items.length < maxShelf) {
+                            restockerMesh.heldBox.visible = false;
+                            const luckyProd = getRandomProduct(PLAYER_SHELF_PRODS);
+                            const pMesh = createProductMesh3D(luckyProd, shelf2.x - 1.2 + shelf2Items.length * 0.6, 1.25, shelf2.z);
+                            shelf2Items.push({ product: luckyProd, mesh: pMesh });
+                        }
+                        restockerState = 'IDLE';
+                    }
+                }
+
+                if (restockerState === 'DELIVER_FREEZER1') {
+                    targetX = freezer1.x; targetZ = freezer1.z + 1.8;
+                    if (getDist(restockerMesh.position.x, restockerMesh.position.z, targetX, targetZ) < 0.4) {
+                        if (freezer1Items.length < maxShelf) {
+                            restockerMesh.heldBox.visible = false;
+                            const luckyProd = getRandomProduct(FREEZER_PRODS);
+                            const pMesh = createProductMesh3D(luckyProd, freezer1.x - 1.2 + freezer1Items.length * 0.6, 1.05, freezer1.z);
+                            freezer1Items.push({ product: luckyProd, mesh: pMesh });
+                        }
+                        restockerState = 'IDLE';
+                    }
+                }
+
+                if (restockerState === 'DELIVER_FREEZER2') {
+                    targetX = freezer2.x; targetZ = freezer2.z + 1.8;
+                    if (getDist(restockerMesh.position.x, restockerMesh.position.z, targetX, targetZ) < 0.4) {
+                        if (freezer2Items.length < maxShelf) {
+                            restockerMesh.heldBox.visible = false;
+                            const luckyProd = getRandomProduct(FREEZER_PRODS);
+                            const pMesh = createProductMesh3D(luckyProd, freezer2.x - 1.2 + freezer2Items.length * 0.6, 1.05, freezer2.z);
+                            freezer2Items.push({ product: luckyProd, mesh: pMesh });
+                        }
+                        restockerState = 'IDLE';
+                    }
+                }
+
+                let dx = targetX - restockerMesh.position.x;
+                let dz = targetZ - restockerMesh.position.z;
+                let dist = Math.hypot(dx, dz);
+
+                if (dist > 0.1) {
+                    restockerMesh.position.x += (dx / dist) * rSpeed;
+                    restockerMesh.position.z += (dz / dist) * rSpeed;
+                    restockerMesh.rotation.y = Math.atan2(dx, dz);
+                    isWorkerMoving = true;
+                }
+                animateCharacter(restockerMesh, 0.15, isWorkerMoving);
+            }
+
+            // ИИ ПОКУПАТЕЛЕЙ (Входят и выходят через стеклянные двери)
+            customerTimer++;
+            if (customerTimer > 140 && customers.length < 4) {
+                const colors = [0x8b5cf6, 0xec4899, 0x14b8a6, 0xf59e0b];
+                const cMesh = createMiniMartCharacter(colors[Math.floor(Math.random() * colors.length)], 0x2563eb);
+                cMesh.position.set(0, 0, 12.0); // Появляются у дверей
+                scene.add(cMesh);
+
+                let wantCount = (shopLevel >= 3) ? Math.floor(Math.random() * 3) + 1 : 1;
+
+                customers.push({
+                    mesh: cMesh,
+                    cartMesh: null,
+                    state: (shopLevel >= 3) ? 'GET_CART' : 'CHECK_SHELF1',
+                    wantCount: wantCount,
+                    boughtProducts: []
+                });
+                customerTimer = 0;
+            }
+
+            let isPlayerNearCashier = getDist(playerGroup.position.x, playerGroup.position.z, zoneCashier.x, zoneCashier.z) < 2.5;
+
+            for (let i = customers.length - 1; i >= 0; i--) {
+                let c = customers[i];
+                let cSpeed = 0.08;
+                let targetX = c.mesh.position.x;
+                let targetZ = c.mesh.position.z;
+
+                if (c.state === 'GET_CART') {
+                    targetX = cartParking.x; targetZ = cartParking.z;
+                    if (getDist(c.mesh.position.x, c.mesh.position.z, targetX, targetZ) < 0.5) {
+                        const cart = createCartMesh(); cart.position.set(0, 0, 0.8);
+                        c.mesh.add(cart); c.cartMesh = cart; c.state = 'CHECK_SHELF1';
+                    }
+                }
+
+                if (c.state === 'CHECK_SHELF1') {
+                    targetX = shelf1.x; targetZ = shelf1.z + 1.8;
+                    if (getDist(c.mesh.position.x, c.mesh.position.z, targetX, targetZ) < 0.4) {
+                        if (shelf1Items.length > 0) {
+                            const item = shelf1Items.pop(); scene.remove(item.mesh);
+                            c.boughtProducts.push(item.product);
+                        }
+                        c.state = (shopLevel >= 2 && c.boughtProducts.length < c.wantCount) ? 'CHECK_SHELF2' :
+                                  ((shopLevel >= 3 && c.boughtProducts.length < c.wantCount) ? 'CHECK_FREEZER1' :
+                                  (c.boughtProducts.length > 0 ? 'WALK_TO_CASHIER' : 'LEAVE'));
+                    }
+                }
+
+                if (c.state === 'CHECK_SHELF2') {
+                    targetX = shelf2.x; targetZ = shelf2.z + 1.8;
+                    if (getDist(c.mesh.position.x, c.mesh.position.z, targetX, targetZ) < 0.4) {
+                        if (shelf2Items.length > 0) {
+                            const item = shelf2Items.pop(); scene.remove(item.mesh);
+                            c.boughtProducts.push(item.product);
+                        }
+                        c.state = (shopLevel >= 3 && c.boughtProducts.length < c.wantCount) ? 'CHECK_FREEZER1' :
+                                  (c.boughtProducts.length > 0 ? 'WALK_TO_CASHIER' : 'LEAVE');
+                    }
+                }
+
+                if (c.state === 'CHECK_FREEZER1') {
+                    targetX = freezer1.x; targetZ = freezer1.z + 1.8;
+                    if (getDist(c.mesh.position.x, c.mesh.position.z, targetX, targetZ) < 0.4) {
+                        if (freezer1Items.length > 0) {
+                            const item = freezer1Items.pop(); scene.remove(item.mesh);
+                            c.boughtProducts.push(item.product);
+                        }
+                        c.state = (shopLevel >= 4 && c.boughtProducts.length < c.wantCount) ? 'CHECK_FREEZER2' :
+                                  (c.boughtProducts.length > 0 ? 'WALK_TO_CASHIER' : 'LEAVE');
+                    }
+                }
+
+                if (c.state === 'CHECK_FREEZER2') {
+                    targetX = freezer2.x; targetZ = freezer2.z + 1.8;
+                    if (getDist(c.mesh.position.x, c.mesh.position.z, targetX, targetZ) < 0.4) {
+                        if (freezer2Items.length > 0) {
+                            const item = freezer2Items.pop(); scene.remove(item.mesh);
+                            c.boughtProducts.push(item.product);
+                        }
+                        c.state = (c.boughtProducts.length > 0) ? 'WALK_TO_CASHIER' : 'LEAVE';
+                    }
+                }
+
+                if (c.state === 'WALK_TO_CASHIER') {
+                    targetX = zoneCashier.x - 2.2;
+                    targetZ = zoneCashier.z + i * 1.2;
+
+                    if (getDist(c.mesh.position.x, c.mesh.position.z, targetX, targetZ) < 0.4) {
+                        if (isPlayerNearCashier || hasCashier) {
+                            let total = c.boughtProducts.reduce((sum, p) => sum + p.price, 0);
+                            money += total; updateUI(); c.state = 'LEAVE';
+                        }
+                    }
+                }
+
+                if (c.state === 'LEAVE') {
+                    targetX = 0; targetZ = 12.2; // Выходят ровно через двери
+                    if (getDist(c.mesh.position.x, c.mesh.position.z, targetX, targetZ) < 0.5) {
+                        scene.remove(c.mesh); customers.splice(i, 1); continue;
+                    }
+                }
+
+                let dx = targetX - c.mesh.position.x;
+                let dz = targetZ - c.mesh.position.z;
+                let dist = Math.hypot(dx, dz);
+
+                if (dist > 0.1) {
+                    c.mesh.position.x += (dx / dist) * cSpeed;
+                    c.mesh.position.z += (dz / dist) * cSpeed;
+                    c.mesh.rotation.y = Math.atan2(dx, dz);
+                    animateCharacter(c.mesh, 0.15, true);
+                } else {
+                    animateCharacter(c.mesh, 0.15, false);
+                }
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        animate();
+
+        window.addEventListener('resize', () => {
+            const aspect = window.innerWidth / window.innerHeight;
+            camera.left = -d * aspect; camera.right = d * aspect;
+            camera.top = d; camera.bottom = -d;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>
