@@ -89,10 +89,15 @@
             box-shadow: 0 4px 15px rgba(58, 134, 255, 0.3);
         }
 
-        .upgrade-top-right {
+        /* --- КОНТЕЙНЕР ДЛЯ АПГРЕЙДА И ПРОМОКОДА (ВПРАВУ ВНИЗУ) --- */
+        .bottom-right-container {
             position: absolute;
-            top: 15px;
+            bottom: 20px;
             right: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 10px;
             z-index: 10;
         }
 
@@ -134,9 +139,6 @@
         }
 
         .promo-bar {
-            position: absolute;
-            bottom: 20px;
-            right: 20px;
             display: flex;
             gap: 8px;
             background: rgba(20, 24, 33, 0.9);
@@ -144,7 +146,6 @@
             border-radius: 12px;
             box-shadow: 0 4px 20px rgba(0,0,0,0.5);
             border: 1px solid rgba(255,255,255,0.1);
-            z-index: 10;
         }
 
         .promo-bar input {
@@ -248,14 +249,13 @@
                 border-radius: 6px;
             }
 
-            .upgrade-top-right {
-                top: 8px;
-                right: 8px;
+            .bottom-right-container {
+                bottom: 10px;
+                right: 10px;
+                gap: 6px;
             }
 
             .promo-bar {
-                bottom: 10px;
-                right: 10px;
                 padding: 4px 8px;
             }
 
@@ -288,10 +288,6 @@
 </head>
 <body>
 
-    <div class="upgrade-top-right">
-        <button id="upgradeBtn" class="action-btn" onclick="upgradeShop()">⬆️ Апгрейд (<span id="upCost">150</span>$)</button>
-    </div>
-
     <div id="ui-container">
         <div class="stats-bar">
             <div>💰 Деньги: <span id="money">50</span> $</div>
@@ -317,9 +313,13 @@
         <div id="joystick-knob"></div>
     </div>
 
-    <div class="promo-bar">
-        <input type="text" id="promoInput" placeholder="Промокод..." onkeydown="if(event.key==='Enter') applyPromo()">
-        <button onclick="applyPromo()">ОК</button>
+    <!-- КНОПКА АПГРЕЙДА И ПРОМОКОД ВПРАВУ ВНИЗУ -->
+    <div class="bottom-right-container">
+        <button id="upgradeBtn" class="action-btn" onclick="upgradeShop()">⬆️ Апгрейд (<span id="upCost">150</span>$)</button>
+        <div class="promo-bar">
+            <input type="text" id="promoInput" placeholder="Промокод..." onkeydown="if(event.key==='Enter') applyPromo()">
+            <button onclick="applyPromo()">ОК</button>
+        </div>
     </div>
 
     <div id="game-over-modal">
