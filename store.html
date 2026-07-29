@@ -3,6 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <title>My Mart game</title>
+
+    <!-- Иконка магазина для самой игры -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏪</text></svg>">
+
+    <!-- Здесь идут ваши стили, Three.js и логика игры -->
+</head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>My Mart game</title>
     <style>
         body {
             margin: 0;
@@ -10,6 +19,7 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: #0d0f14;
             user-select: none;
+            touch-action: none;
         }
 
         #ui-container {
@@ -175,6 +185,34 @@
 
         #game-over-modal h1 { font-size: 48px; color: #ff4d4d; margin-bottom: 10px; }
         #game-over-modal button { padding: 14px 28px; font-size: 18px; background: #2ec4b6; border: none; border-radius: 10px; color: white; font-weight: bold; cursor: pointer; }
+
+        /* --- СТИЛИ ДЖОЙСТИКА ДЛЯ МОБИЛЬНЫХ УСТРОЙСТВ --- */
+        #joystick-zone {
+            position: absolute;
+            bottom: 30px;
+            left: 30px;
+            width: 120px;
+            height: 120px;
+            background: rgba(255, 255, 255, 0.15);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            z-index: 50;
+            touch-action: none;
+            backdrop-filter: blur(4px);
+        }
+
+        #joystick-knob {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #ff007f, #b30059);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            pointer-events: none;
+        }
     </style>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -204,6 +242,11 @@
     </div>
 
     <button id="unstuckBtn" onclick="unstuckPlayer()">🚨 Застрял (Unstuck)</button>
+
+    <!-- СЕНСОРНЫЙ ДЖОЙСТИК -->
+    <div id="joystick-zone">
+        <div id="joystick-knob"></div>
+    </div>
 
     <div class="promo-bar">
         <input type="text" id="promoInput" placeholder="Промокод..." onkeydown="if(event.key==='Enter') applyPromo()">
@@ -643,10 +686,53 @@
             document.getElementById('unstuckBtn').style.display = 'none';
         }
 
-        // --- 9. КНОПКИ И УПРАВЛЕНИЕ ---
+        // --- 9. КНОПКИ И УПРАВЛЕНИЕ (КЛАВИАТУРА И ДЖОЙСТИК) ---
         const keys = {};
         window.addEventListener('keydown', e => keys[e.code] = true);
         window.addEventListener('keyup', e => keys[e.code] = false);
+
+        // ЛОГИКА СЕНСОРНОГО ДЖОЙСТИКА
+        let joystickVector = { x: 0, y: 0 };
+        const joystickZone = document.getElementById('joystick-zone');
+        const joystickKnob = document.getElementById('joystick-knob');
+        let joystickActive = false;
+
+        function handleJoystickMove(evt) {
+            if (!joystickActive) return;
+            const touch = evt.touches ? evt.touches[0] : evt;
+            const rect = joystickZone.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+
+            let deltaX = touch.clientX - centerX;
+            let deltaY = touch.clientY - centerY;
+            const maxRadius = rect.width / 2;
+            const distance = Math.hypot(deltaX, deltaY);
+
+            if (distance > maxRadius) {
+                deltaX = (deltaX / distance) * maxRadius;
+                deltaY = (deltaY / distance) * maxRadius;
+            }
+
+            joystickKnob.style.transform = `translate(calc(-50% + ${deltaX}px), calc(-50% + ${deltaY}px))`;
+            joystickVector.x = deltaX / maxRadius;
+            joystickVector.y = deltaY / maxRadius;
+        }
+
+        function stopJoystick() {
+            joystickActive = false;
+            joystickKnob.style.transform = 'translate(-50%, -50%)';
+            joystickVector = { x: 0, y: 0 };
+        }
+
+        joystickZone.addEventListener('touchstart', e => { joystickActive = true; handleJoystickMove(e); }, { passive: true });
+        window.addEventListener('touchmove', handleJoystickMove, { passive: true });
+        window.addEventListener('touchend', stopJoystick);
+        window.addEventListener('touchcancel', stopJoystick);
+
+        joystickZone.addEventListener('mousedown', e => { joystickActive = true; handleJoystickMove(e); });
+        window.addEventListener('mousemove', handleJoystickMove);
+        window.addEventListener('mouseup', stopJoystick);
 
         function updateUI() {
             document.getElementById('money').textContent = money;
@@ -757,12 +843,18 @@
         function animate() {
             requestAnimationFrame(animate);
 
-            // Движение игрока
+            // Движение игрока (клавиатура или джойстик)
             let targetVelX = 0; let targetVelZ = 0; const maxSpeed = 0.13;
-            if (keys['KeyW'] || keys['ArrowUp']) targetVelZ -= maxSpeed;
-            if (keys['KeyS'] || keys['ArrowDown']) targetVelZ += maxSpeed;
-            if (keys['KeyA'] || keys['ArrowLeft']) targetVelX -= maxSpeed;
-            if (keys['KeyD'] || keys['ArrowRight']) targetVelX += maxSpeed;
+
+            if (joystickVector.x !== 0 || joystickVector.y !== 0) {
+                targetVelX = joystickVector.x * maxSpeed;
+                targetVelZ = joystickVector.y * maxSpeed;
+            } else {
+                if (keys['KeyW'] || keys['ArrowUp']) targetVelZ -= maxSpeed;
+                if (keys['KeyS'] || keys['ArrowDown']) targetVelZ += maxSpeed;
+                if (keys['KeyA'] || keys['ArrowLeft']) targetVelX -= maxSpeed;
+                if (keys['KeyD'] || keys['ArrowRight']) targetVelX += maxSpeed;
+            }
 
             playerVelX += (targetVelX - playerVelX) * 0.15;
             playerVelZ += (targetVelZ - playerVelZ) * 0.15;
