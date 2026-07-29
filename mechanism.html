@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Электро-Крафт — Gravel Games</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚙️</text></svg>">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #0f172a;
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            min-height: 100vh;
+            padding: 15px 10px;
+            user-select: none;
+            overflow: hidden;
+        }
+
+        .header-panel {
+            text-align: center;
+            margin-bottom: 5px;
+        }
+
+        h1 {
+            margin-bottom: 8px;
+            font-size: 1.8rem;
+            background: linear-gradient(135deg, #38bdf8, #818cf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .top-controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            background-color: #1e293b;
+            color: #f8fafc;
+            border: 2px solid #334155;
+            border-radius: 12px;
+            padding: 6px 14px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s ease;
+        }
+
+        .btn:hover {
+            background-color: #243347;
+            border-color: #38bdf8;
+            box-shadow: 0 4px 12px rgba(56, 189, 248, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .btn-clear {
+            background-color: #450a0a;
+            border-color: #7f1d1d;
+            color: #fca5a5;
+        }
+
+        .btn-clear:hover {
+            background-color: #7f1d1d;
+            border-color: #ef4444;
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+        }
+
+        .btn-add {
+            background-color: #064e3b;
+            border-color: #047857;
+            color: #6ee7b7;
+        }
+
+        .btn-add:hover {
+            background-color: #047857;
+            border-color: #10b981;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+
+        .layer-display {
+            font-size: 0.95rem;
+            font-weight: bold;
+            background: #0f172a;
+            color: #38bdf8;
+            padding: 4px 14px;
+            border-radius: 10px;
+            border: 2px solid #334155;
+        }
+
+        .hint {
+            font-size: 0.8rem;
+            color: #94a3b8;
+            margin: 4px 0;
+            text-align: center;
+            line-height: 1.3;
+        }
+
+        .hint span {
+            color: #38bdf8;
+            font-weight: 600;
+        }
+
+        .grid-container {
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            padding: 5px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(12, 44px);
+            grid-template-rows: repeat(12, 44px);
+            gap: 3px;
+            background-color: #1e293b;
+            padding: 8px;
+            border-radius: 16px;
+            border: 2px solid #334155;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            position: relative;
+        }
+
+        .cell {
+            width: 44px;
+            height: 44px;
+            background-color: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            box-sizing: border-box;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            position: relative;
+            transition: background-color 0.15s ease, border-color 0.15s ease;
+        }
+
+        .cell:hover {
+            background-color: #1e293b;
+            border-color: #38bdf8;
+        }
+
+        .item-icon {
+            font-size: 20px;
+            line-height: 1;
+            z-index: 2;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+        }
+
+        .dir-up { transform: rotate(-90deg); }
+        .dir-right { transform: rotate(0deg); }
+        .dir-down { transform: rotate(90deg); }
+        .dir-left { transform: rotate(180deg); }
+
+        .cell[data-type="battery"] { background-color: #064e3b; border-color: #047857; }
+        .cell[data-type="wire"] { background-color: #334155; }
+        .cell[data-type="wire_vert"] { background-color: #1e1b4b; border-color: #6366f1; }
+        .cell[data-type="resistor"] { background-color: #451a03; }
+        .cell[data-type="switch"] { background-color: #312e81; }
+        .cell[data-type="button"] { background-color: #4338ca; }
+        .cell[data-type="lamp"] { background-color: #450a0a; }
+        .cell[data-type="timer"] { background-color: #164e63; }
+        .cell[data-type="observer"] { background-color: #334155; }
+        .cell[data-type="observer_vert"] { background-color: #064e3b; border-color: #10b981; }
+        .cell[data-type="fan"] { background-color: #155e75; }
+        .cell[data-type="tnt"] { background-color: #7f1d1d; }
+        .cell[data-type="piston"] { background-color: #334155; }
+        .cell[data-type="sticky_piston"] { background-color: #14532d; }
+        .cell[data-type="puller_piston"] { background-color: #581c87; }
+
+        .cell.powered {
+            background-color: #ca8a04 !important;
+            box-shadow: inset 0 0 12px #facc15, 0 0 10px rgba(250, 204, 21, 0.4);
+            border-color: #fde047;
+        }
+
+        .cell[data-type="fan"].powered {
+            background-color: #0284c7 !important;
+            box-shadow: inset 0 0 15px #38bdf8, 0 0 12px rgba(56, 189, 248, 0.5);
+            border-color: #38bdf8;
+        }
+
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        .cell[data-type="fan"].powered .item-icon { animation: spin 0.3s linear infinite; }
+
+        .timer-val {
+            position: absolute;
+            font-size: 10px;
+            font-weight: bold;
+            color: #38bdf8;
+            background: rgba(15, 23, 42, 0.85);
+            padding: 1px 3px;
+            border-radius: 4px;
+            bottom: 2px;
+            right: 2px;
+            z-index: 3;
+            border: 1px solid #334155;
+        }
+
+        .heat-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: rgba(239, 68, 68, 0);
+            pointer-events: none;
+            z-index: 1;
+            border-radius: 6px;
+        }
+
+        .cell.burned {
+            background-color: #090d16 !important;
+            border-color: #1e293b !important;
+        }
+        .cell.burned .item-icon { opacity: 0.25; filter: grayscale(1); }
+
+        .color-picker {
+            display: none;
+            position: absolute;
+            z-index: 100;
+            background: #1e293b;
+            border: 2px solid #38bdf8;
+            border-radius: 12px;
+            padding: 6px;
+            gap: 6px;
+            grid-template-columns: repeat(3, 26px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        }
+        .color-dot {
+            width: 26px;
+            height: 26px;
+            cursor: pointer;
+            border-radius: 50%;
+            border: 2px solid #0f172a;
+            transition: transform 0.15s ease;
+        }
+        .color-dot:hover { transform: scale(1.15); }
+
+        .explosion-effect {
+            position: absolute;
+            background-color: #facc15;
+            box-shadow: 0 0 40px #ef4444;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 99;
+            transform: scale(0);
+            transition: transform 0.2s ease-out, opacity 0.2s ease-out;
+            opacity: 1;
+        }
+
+        .hotbar-container {
+            margin-bottom: 5px;
+            background-color: #1e293b;
+            border: 2px solid #334155;
+            border-radius: 16px;
+            padding: 5px;
+            display: flex;
+            gap: 5px;
+            max-width: 98vw;
+            overflow-x: auto;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
+
+        /* Стилизация скроллбара хотбара */
+        .hotbar-container::-webkit-scrollbar { height: 6px; }
+        .hotbar-container::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+
+        .hotbar-slot {
+            width: 44px;
+            height: 44px;
+            background-color: #0f172a;
+            border: 2px solid #334155;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            position: relative;
+            flex-shrink: 0;
+            transition: all 0.2s ease;
+        }
+
+        .hotbar-slot:hover {
+            border-color: #94a3b8;
+            background-color: #1e293b;
+        }
+
+        .hotbar-slot.selected {
+            border: 2px solid #38bdf8;
+            background-color: #243347;
+            box-shadow: 0 0 12px rgba(56, 189, 248, 0.3);
+        }
+
+        .hotbar-slot::after {
+            content: attr(data-name);
+            position: absolute;
+            bottom: 52px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #0f172a;
+            color: #f8fafc;
+            border: 1px solid #334155;
+            padding: 4px 8px;
+            border-radius: 8px;
+            font-size: 11px;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 10;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+            transition: opacity 0.15s ease;
+        }
+        .hotbar-slot:hover::after { opacity: 1; }
+    </style>
+</head>
+<body>
+
+    <div class="header-panel">
+        <h1>3D Электро-Крафт</h1>
+        <div class="top-controls">
+            <button class="btn btn-clear" onclick="clearAllGrid()">ОЧИСТИТЬ ВСЁ</button>
+            <button class="btn" onclick="changeLayer(-1)">▼ Слой Ниже</button>
+            <div class="layer-display" id="layerDisplay">Слой: 1 / 1</div>
+            <button class="btn" onclick="changeLayer(1)">▲ Слой Выше</button>
+            <button class="btn btn-add" onclick="addLayer()">+ Создать Слой</button>
+        </div>
+    </div>
+
+    <div class="hint">
+        3D Передача: <span>↕️ Верт. Провод</span> (ток сквозь этажи), <span>⏬ Верт. Наблюдатель</span> (сканирует верх/низ).<br>
+        ЛКМ — ставить/вращать, ПКМ — удалить. Горячие клавиши: 1-9, 0, -, =, [, ]
+    </div>
+
+    <div class="grid-container"><div class="grid" id="grid"></div></div>
+
+    <div class="color-picker" id="colorPicker">
+        <div class="color-dot" style="background: #ffff55;" data-color="#ffff55"></div><div class="color-dot" style="background: #ff5555;" data-color="#ff5555"></div><div class="color-dot" style="background: #55ff55;" data-color="#55ff55"></div>
+        <div class="color-dot" style="background: #5555ff;" data-color="#5555ff"></div><div class="color-dot" style="background: #ff55ff;" data-color="#ff55ff"></div><div class="color-dot" style="background: #55ffff;" data-color="#55ffff"></div>
+    </div>
+
+    <div class="hotbar-container" id="hotbar">
+        <div class="hotbar-slot selected" data-item="wire" data-name="Провод (1)"><span class="item-icon dir-right">➔</span></div>
+        <div class="hotbar-slot" data-item="wire_vert" data-name="3D Провод Вверх/Вниз (2)"><span class="item-icon">↕️</span></div>
+        <div class="hotbar-slot" data-item="battery" data-name="Батарейка (3)"><span class="item-icon">🔋</span></div>
+        <div class="hotbar-slot" data-item="switch" data-name="Выключатель (4)"><span class="item-icon">❌</span></div>
+        <div class="hotbar-slot" data-item="observer" data-name="Наблюдатель (5)"><span class="item-icon dir-right">🔀</span></div>
+        <div class="hotbar-slot" data-item="observer_vert" data-name="3D Наблюдатель Вверх/Вниз (6)"><span class="item-icon">⏫</span></div>
+        <div class="hotbar-slot" data-item="tnt" data-name="Динамит 3D-Взрыв (7)"><span class="item-icon">🧨</span></div>
+        <div class="hotbar-slot" data-item="fan" data-name="3D Вентилятор (8)"><span class="item-icon">❄️</span></div>
+        <div class="hotbar-slot" data-item="timer" data-name="Таймер (9)"><span class="item-icon">⏳</span></div>
+        <div class="hotbar-slot" data-item="piston" data-name="Поршень (0)"><span class="item-icon dir-right">⫸</span></div>
+        <div class="hotbar-slot" data-item="sticky_piston" data-name="Липкий Поршень (-)"><span class="item-icon dir-right">⪢</span></div>
+        <div class="hotbar-slot" data-item="puller_piston" data-name="Тягун Поршень (=)"><span class="item-icon dir-right">⪡</span></div>
+        <div class="hotbar-slot" data-item="lamp" data-name="Лампа ([)"><span class="item-icon">💡</span></div>
+        <div class="hotbar-slot" data-item="eraser" data-name="Удалить (])"><span class="item-icon">🗑️</span></div>
+    </div>
+
+    <script>
+        const GRID_SIZE = 12;
+        const grid = document.getElementById('grid');
+        const slots = document.querySelectorAll('.hotbar-slot');
+        const colorPicker = document.getElementById('colorPicker');
+        const layerDisplay = document.getElementById('layerDisplay');
+
+        let currentItem = 'wire';
+        let gridData = {}; // 3D Хранилище: id -> data
+        let activePickerCell = null;
+
+        let layersCount = 1;
+        let currentZ = 0; // Индекс текущего слоя (0 = первый слой)
+
+        const DIRECTIONS = ['right', 'down', 'left', 'up'];
+        const VERT_DIRECTIONS = ['up_layer', 'down_layer'];
+        const SLOT_KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=', '[', ']'];
+
+        // Инициализация HTML сетки (работает как "экран" для текущего слоя)
+        function initDOMGrid() {
+            grid.innerHTML = '';
+            for (let y = 0; y < GRID_SIZE; y++) {
+                for (let x = 0; x < GRID_SIZE; x++) {
+                    const cell = document.createElement('div');
+                    cell.classList.add('cell');
+                    cell.dataset.x = x; cell.dataset.y = y;
+
+                    const heatOverlay = document.createElement('div');
+                    heatOverlay.classList.add('heat-overlay');
+                    cell.appendChild(heatOverlay);
+
+                    cell.addEventListener('click', (e) => handleCellClick(x, y, e));
+                    cell.addEventListener('contextmenu', (e) => { e.preventDefault(); removeItem(x, y, currentZ); });
+                    grid.appendChild(cell);
+                }
+            }
+        }
+
+        function createEmptyData() {
+            return {
+                type: 'empty', direction: 'right', vert_direction: 'up_layer', isOpen: false, isBtnPressed: false,
+                timerMax: 3, timerCurrent: 0, timerActive: false, timerPassed: false,
+                obsActive: false, obsLastState: false, lampColor: '#ffff55',
+                heat: 0, isBurned: false, isPowered: false, lastPower: 0, pistonExtended: false
+            };
+        }
+
+        // Создает пустой слой в памяти
+        function initLayerData(z) {
+            for (let y = 0; y < GRID_SIZE; y++) {
+                for (let x = 0; x < GRID_SIZE; x++) {
+                    gridData[`${x},${y},${z}`] = createEmptyData();
+                }
+            }
+        }
+
+        function addLayer() {
+            initLayerData(layersCount);
+            layersCount++;
+            changeLayer(1);
+        }
+
+        function changeLayer(delta) {
+            let newZ = currentZ + delta;
+            if (newZ >= 0 && newZ < layersCount) {
+                currentZ = newZ;
+                layerDisplay.textContent = `Слой: ${currentZ + 1} / ${layersCount}`;
+                renderFullLayer();
+            }
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (SLOT_KEYS.includes(e.key)) {
+                const index = SLOT_KEYS.indexOf(e.key);
+                slots.forEach(s => s.classList.remove('selected'));
+                slots[index].classList.add('selected');
+                currentItem = slots[index].dataset.item;
+            }
+        });
+
+        slots.forEach(slot => { slot.addEventListener('click', () => {
+            slots.forEach(s => s.classList.remove('selected'));
+            slot.classList.add('selected'); currentItem = slot.dataset.item;
+        });});
+
+        const ROTATABLE_ITEMS = ['wire', 'observer', 'piston', 'sticky_piston', 'puller_piston'];
+
+        function handleCellClick(x, y, e) {
+            e.stopPropagation(); colorPicker.style.display = 'none';
+            const id = `${x},${y},${currentZ}`;
+            const data = gridData[id];
+            const cell = getCellEl(x, y);
+
+            if (data.type === 'switch' && currentItem !== 'eraser') {
+                data.isOpen = !data.isOpen; updateSystem(); renderVisuals(); return;
+            }
+
+            if (data.type === 'button' && currentItem !== 'eraser') {
+                if (data.isBtnPressed) return;
+                data.isBtnPressed = true; cell.style.filter = 'brightness(0.6)'; updateSystem(); renderVisuals();
+                setTimeout(() => { data.isBtnPressed = false; cell.style.filter = ''; updateSystem(); renderVisuals(); }, 1000);
+                return;
+            }
+
+            if (data.type === 'timer' && currentItem !== 'eraser') {
+                let newTime = prompt("Время таймера (1-99 сек):", data.timerMax);
+                if (!isNaN(parseInt(newTime)) && newTime >= 1) { data.timerMax = parseInt(newTime); renderCellVisualData(x, y, currentZ); }
+                return;
+            }
+
+            if (data.type === 'lamp' && currentItem !== 'eraser') {
+                activePickerCell = {x, y, z: currentZ}; colorPicker.style.display = 'grid';
+                colorPicker.style.left = `${e.pageX}px`; colorPicker.style.top = `${e.pageY}px`; return;
+            }
+
+            // Вращение 2D элементов
+            if (ROTATABLE_ITEMS.includes(data.type) && currentItem === data.type) {
+                data.direction = DIRECTIONS[(DIRECTIONS.indexOf(data.direction) + 1) % 4];
+                renderCellVisualData(x, y, currentZ); updateSystem(); return;
+            }
+
+            // Вращение 3D Наблюдателя
+            if (data.type === 'observer_vert' && currentItem === 'observer_vert') {
+                data.vert_direction = data.vert_direction === 'up_layer' ? 'down_layer' : 'up_layer';
+                renderCellVisualData(x, y, currentZ); updateSystem(); return;
+            }
+
+            if (currentItem === 'eraser') { removeItem(x, y, currentZ); return; }
+
+            // Установка
+            gridData[id] = createEmptyData();
+            gridData[id].type = currentItem;
+
+            renderCellVisualData(x, y, currentZ);
+            updateSystem();
+        }
+
+        document.querySelectorAll('.color-dot').forEach(dot => {
+            dot.addEventListener('click', () => {
+                if (activePickerCell) {
+                    gridData[`${activePickerCell.x},${activePickerCell.y},${activePickerCell.z}`].lampColor = dot.dataset.color;
+                    renderCellVisualData(activePickerCell.x, activePickerCell.y, activePickerCell.z); updateSystem();
+                }
+            });
+        });
+        window.addEventListener('click', () => colorPicker.style.display = 'none');
+
+        function removeItem(x, y, z) {
+            gridData[`${x},${y},${z}`] = createEmptyData();
+            if (z === currentZ) renderCellVisualData(x, y, z);
+            updateSystem();
+        }
+
+        function clearAllGrid() {
+            for (let z = 0; z < layersCount; z++) initLayerData(z);
+            renderFullLayer(); updateSystem();
+        }
+
+        function getCellEl(x, y) { return document.querySelector(`.cell[data-x="${x}"][data-y="${y}"]`); }
+        function getOffset(dir) {
+            if (dir === 'right') return {x: 1, y: 0}; if (dir === 'left') return {x: -1, y: 0};
+            if (dir === 'down') return {x: 0, y: 1}; if (dir === 'up') return {x: 0, y: -1}; return {x: 0, y: 0};
+        }
+
+        // --- ДВИЖОК ОТРИСОВКИ ---
+        function renderFullLayer() {
+            for (let y = 0; y < GRID_SIZE; y++) {
+                for (let x = 0; x < GRID_SIZE; x++) renderCellVisualData(x, y, currentZ);
+            }
+            renderVisuals();
+        }
+
+        function renderCellVisualData(x, y, z) {
+            if (z !== currentZ) return; // Рисуем только текущий слой
+            const cell = getCellEl(x, y); const data = gridData[`${x},${y},${z}`];
+            if (!cell) return;
+
+            cell.dataset.type = data.type;
+            cell.innerHTML = '<div class="heat-overlay"></div>';
+
+            if (data.type === 'empty') return;
+            const iconSpan = document.createElement('span'); iconSpan.classList.add('item-icon');
+
+            if (ROTATABLE_ITEMS.includes(data.type)) iconSpan.classList.add(`dir-${data.direction}`);
+
+            if (data.type === 'wire') iconSpan.textContent = '➔';
+            if (data.type === 'wire_vert') iconSpan.textContent = '↕️';
+            if (data.type === 'battery') iconSpan.textContent = '🔋';
+            if (data.type === 'switch') iconSpan.textContent = data.isOpen ? '✔️' : '❌';
+            if (data.type === 'lamp') iconSpan.textContent = '💡';
+            if (data.type === 'fan') iconSpan.textContent = '❄️';
+            if (data.type === 'tnt') iconSpan.textContent = '🧨';
+            if (data.type === 'observer') iconSpan.textContent = '🔀';
+            if (data.type === 'observer_vert') iconSpan.textContent = data.vert_direction === 'up_layer' ? '⏫' : '⏬';
+            if (data.type === 'piston') iconSpan.textContent = '⫸';
+            if (data.type === 'sticky_piston') iconSpan.textContent = '⪢';
+            if (data.type === 'puller_piston') iconSpan.textContent = '⪡';
+            if (data.type === 'timer') {
+                iconSpan.textContent = '⏳';
+                const ts = document.createElement('span'); ts.classList.add('timer-val'); ts.textContent = data.timerMax; cell.appendChild(ts);
+            }
+            cell.appendChild(iconSpan);
+        }
+
+        function renderVisuals() {
+            for (let y = 0; y < GRID_SIZE; y++) {
+                for (let x = 0; x < GRID_SIZE; x++) {
+                    const cell = getCellEl(x, y); const data = gridData[`${x},${y},${currentZ}`];
+                    if (!cell) continue;
+
+                    if (data.isPowered) cell.classList.add('powered'); else cell.classList.remove('powered');
+                    if (data.isBurned) { cell.classList.add('burned'); cell.style.backgroundColor = ''; }
+                    else cell.classList.remove('burned');
+
+                    if (data.type === 'lamp' && data.isPowered && !data.isBurned) cell.style.backgroundColor = data.lampColor;
+                    else if (data.type === 'lamp') cell.style.backgroundColor = '';
+
+                    const overlay = cell.querySelector('.heat-overlay');
+                    if (overlay) overlay.style.backgroundColor = `rgba(239, 68, 68, ${data.heat / 130})`;
+                }
+            }
+        }
+
+        // --- 3D ДВИЖОК РАСЧЕТА ЦЕПИ ---
+        function updateSystem() {
+            // Сброс питания
+            Object.values(gridData).forEach(d => { if(d.type !== 'fan') d.isPowered = false; });
+
+            const queue = []; const visited = new Set(); const powerMap = {};
+
+            // Ищем все источники энергии по всем слоям
+            for (let z = 0; z < layersCount; z++) {
+                for (let y = 0; y < GRID_SIZE; y++) {
+                    for (let x = 0; x < GRID_SIZE; x++) {
+                        const id = `${x},${y},${z}`; const d = gridData[id];
+                        if (d.isBurned) continue;
+                        if (d.type === 'battery' || (d.type === 'button' && d.isBtnPressed) || (d.type === 'observer' && d.obsActive) || (d.type === 'observer_vert' && d.obsActive)) {
+                            queue.push({x, y, z, p: 2}); visited.add(id); powerMap[id] = 2;
+                        }
+                    }
+                }
+            }
+
+            while (queue.length > 0) {
+                const curr = queue.shift(); const id = `${curr.x},${curr.y},${curr.z}`;
+                const currData = gridData[id]; currData.isPowered = true;
+
+                if (currData.type === 'tnt') { explodeTNT(curr.x, curr.y, curr.z); return; }
+
+                let targets = [];
+                if (currData.type === 'wire' || currData.type === 'observer') {
+                    const off = getOffset(currData.direction); targets.push({x: curr.x + off.x, y: curr.y + off.y, z: curr.z});
+                } else if (currData.type === 'wire_vert') {
+                    // Вертикальный провод: во все 4 стороны на этаже + ВВЕРХ + ВНИЗ
+                    targets.push({x: curr.x+1, y: curr.y, z: curr.z}, {x: curr.x-1, y: curr.y, z: curr.z}, {x: curr.x, y: curr.y+1, z: curr.z}, {x: curr.x, y: curr.y-1, z: curr.z});
+                    targets.push({x: curr.x, y: curr.y, z: curr.z+1}, {x: curr.x, y: curr.y, z: curr.z-1});
+                } else if (currData.type === 'observer_vert') {
+                    // Вертикальный наблюдатель выдает ток на своем этаже во все стороны
+                    targets.push({x: curr.x+1, y: curr.y, z: curr.z}, {x: curr.x-1, y: curr.y, z: curr.z}, {x: curr.x, y: curr.y+1, z: curr.z}, {x: curr.x, y: curr.y-1, z: curr.z});
+                } else {
+                    targets.push({x: curr.x+1, y: curr.y, z: curr.z}, {x: curr.x-1, y: curr.y, z: curr.z}, {x: curr.x, y: curr.y+1, z: curr.z}, {x: curr.x, y: curr.y-1, z: curr.z});
+                }
+
+                targets.forEach(n => {
+                    if (n.x < 0 || n.x >= GRID_SIZE || n.y < 0 || n.y >= GRID_SIZE || n.z < 0 || n.z >= layersCount) return;
+                    const nId = `${n.x},${n.y},${n.z}`; const nData = gridData[nId];
+
+                    if (nData.isBurned || nData.type === 'empty' || nData.type === 'battery') return;
+                    if (nData.type === 'switch' && !nData.isOpen) return;
+                    if (nData.type === 'timer' && !nData.timerPassed) {
+                        if (!nData.timerActive) startTimer(n.x, n.y, n.z); nData.isPowered = true; return;
+                    }
+
+                    let nextP = curr.p;
+                    if (!visited.has(nId) || powerMap[nId] < nextP) {
+                        visited.add(nId); powerMap[nId] = nextP;
+                        if (nData.type === 'lamp') nData.isPowered = true;
+                        else queue.push({x: n.x, y: n.y, z: n.z, p: nextP});
+                    }
+                });
+            }
+
+            // Обработка памяти состояний и 2D Поршней
+            for (let z = 0; z < layersCount; z++) {
+                for (let y = 0; y < GRID_SIZE; y++) {
+                    for (let x = 0; x < GRID_SIZE; x++) {
+                        const id = `${x},${y},${z}`; const d = gridData[id];
+                        if (d.isPowered) {
+                            d.lastPower = powerMap[id] || 0;
+                            if (['piston', 'sticky_piston', 'puller_piston'].includes(d.type) && !d.pistonExtended) processPiston(x, y, z, true);
+                        } else {
+                            d.lastPower = 0;
+                            if (d.type === 'timer' && !visited.has(id)) resetTimer(x, y, z);
+                            if (['piston', 'sticky_piston', 'puller_piston'].includes(d.type) && d.pistonExtended) processPiston(x, y, z, false);
+                        }
+                    }
+                }
+            }
+            renderVisuals();
+        }
+
+        // Физика поршней остается 2D (в пределах своего слоя z)
+        function processPiston(px, py, pz, extend) {
+            const d = gridData[`${px},${py},${pz}`]; d.pistonExtended = extend;
+            const off = getOffset(d.direction);
+
+            if (extend) {
+                let blocks = []; let tx = px + off.x; let ty = py + off.y;
+                while (tx >= 0 && tx < GRID_SIZE && ty >= 0 && ty < GRID_SIZE) {
+                    if (gridData[`${tx},${ty},${pz}`].type === 'empty') break;
+                    blocks.push({x: tx, y: ty, d: Object.assign({}, gridData[`${tx},${ty},${pz}`])});
+                    tx += off.x; ty += off.y;
+                }
+                if (tx >= 0 && tx < GRID_SIZE && ty >= 0 && ty < GRID_SIZE) {
+                    for (let i = blocks.length - 1; i >= 0; i--) {
+                        gridData[`${blocks[i].x + off.x},${blocks[i].y + off.y},${pz}`] = blocks[i].d;
+                        if (pz === currentZ) renderCellVisualData(blocks[i].x + off.x, blocks[i].y + off.y, pz);
+                    }
+                    if (blocks.length > 0 || true) {
+                        gridData[`${px + off.x},${py + off.y},${pz}`] = createEmptyData();
+                        if (pz === currentZ) renderCellVisualData(px + off.x, py + off.y, pz);
+                    }
+                }
+            } else {
+                let tx = px + off.x * 2; let ty = py + off.y * 2;
+                if (d.type === 'sticky_piston' && tx >= 0 && tx < GRID_SIZE && ty >= 0 && ty < GRID_SIZE) {
+                    if (gridData[`${tx},${ty},${pz}`].type !== 'empty') {
+                        gridData[`${px + off.x},${py + off.y},${pz}`] = Object.assign({}, gridData[`${tx},${ty},${pz}`]);
+                        gridData[`${tx},${ty},${pz}`] = createEmptyData();
+                        if(pz===currentZ){ renderCellVisualData(px+off.x, py+off.y, pz); renderCellVisualData(tx, ty, pz); }
+                    }
+                } else if (d.type === 'puller_piston') {
+                    let blocks = [];
+                    while (tx >= 0 && tx < GRID_SIZE && ty >= 0 && ty < GRID_SIZE && gridData[`${tx},${ty},${pz}`].type !== 'empty') {
+                        blocks.push({x: tx, y: ty, d: Object.assign({}, gridData[`${tx},${ty},${pz}`])}); tx += off.x; ty += off.y;
+                    }
+                    blocks.forEach(b => {
+                        gridData[`${b.x - off.x},${b.y - off.y},${pz}`] = b.d;
+                        if (pz === currentZ) renderCellVisualData(b.x - off.x, b.y - off.y, pz);
+                    });
+                    if (blocks.length > 0) {
+                        gridData[`${blocks[blocks.length-1].x},${blocks[blocks.length-1].y},${pz}`] = createEmptyData();
+                        if (pz === currentZ) renderCellVisualData(blocks[blocks.length-1].x, blocks[blocks.length-1].y, pz);
+                    }
+                }
+            }
+            setTimeout(updateSystem, 50);
+        }
+
+        // 3D ВЗРЫВ ТНТ
+        function explodeTNT(tx, ty, tz) {
+            if (gridData[`${tx},${ty},${tz}`].type !== 'tnt') return;
+            gridData[`${tx},${ty},${tz}`] = createEmptyData();
+            if(tz === currentZ) renderCellVisualData(tx, ty, tz);
+
+            if (tz === currentZ) {
+                const cell = getCellEl(tx, ty);
+                const flash = document.createElement('div'); flash.classList.add('explosion-effect');
+                flash.style.left = `${cell.offsetLeft - 44}px`; flash.style.top = `${cell.offsetTop - 44}px`;
+                flash.style.width = '132px'; flash.style.height = '132px'; grid.appendChild(flash);
+                setTimeout(() => flash.style.transform = 'scale(1)', 10); setTimeout(() => flash.remove(), 250);
+            }
+
+            // Взрыв по 3 слоям: z-1, z, z+1
+            for (let dz = -1; dz <= 1; dz++) {
+                for (let dy = -2; dy <= 2; dy++) {
+                    for (let dx = -2; dx <= 2; dx++) {
+                        const nx = tx + dx; const ny = ty + dy; const nz = tz + dz;
+                        if (nx < 0 || nx >= GRID_SIZE || ny < 0 || ny >= GRID_SIZE || nz < 0 || nz >= layersCount) continue;
+                        if (dx === 0 && dy === 0 && dz === 0) continue;
+
+                        const nId = `${nx},${ny},${nz}`; const nData = gridData[nId];
+                        if (nData.type === 'tnt') {
+                            setTimeout(() => explodeTNT(nx, ny, nz), 150); // Цепная реакция в 3D!
+                        } else if (nData.type !== 'empty') {
+                            gridData[nId] = createEmptyData();
+                            if (nz === currentZ) renderCellVisualData(nx, ny, nz);
+                        }
+                    }
+                }
+            }
+            setTimeout(updateSystem, 200);
+        }
+
+        function startTimer(x, y, z) {
+            const d = gridData[`${x},${y},${z}`]; if (d.timerActive) return;
+            d.timerActive = true; d.timerCurrent = d.timerMax;
+            const int = setInterval(() => {
+                if (d.type !== 'timer' || !d.timerActive) { clearInterval(int); return; }
+                d.timerCurrent--;
+                if(z === currentZ) { const c = getCellEl(x,y); if(c && c.querySelector('.timer-val')) c.querySelector('.timer-val').textContent = d.timerCurrent; }
+                if (d.timerCurrent <= 0) { clearInterval(int); d.timerPassed = true; updateSystem(); }
+            }, 1000);
+        }
+        function resetTimer(x, y, z) {
+            const d = gridData[`${x},${y},${z}`]; d.timerActive = false; d.timerPassed = false;
+            if (z === currentZ) { const c = getCellEl(x,y); if(c && c.querySelector('.timer-val')) c.querySelector('.timer-val').textContent = d.timerMax; }
+        }
+
+        // ОБРАБОТЧИК НАБЛЮДАТЕЛЕЙ (2D и 3D)
+        setInterval(() => {
+            let needUpd = false;
+            for (let z = 0; z < layersCount; z++) {
+                for (let y = 0; y < GRID_SIZE; y++) {
+                    for (let x = 0; x < GRID_SIZE; x++) {
+                        const d = gridData[`${x},${y},${z}`];
+                        if (d.isBurned) continue;
+
+                        if (d.type === 'observer') {
+                            const off = getOffset(d.direction); const bx = x - off.x; const by = y - off.y;
+                            let state = false;
+                            if (bx >= 0 && bx < GRID_SIZE && by >= 0 && by < GRID_SIZE) state = gridData[`${bx},${by},${z}`].isPowered;
+                            if (state !== d.obsLastState) {
+                                d.obsLastState = state; if (!d.obsActive) { d.obsActive = true; needUpd = true; setTimeout(() => { d.obsActive = false; updateSystem(); }, 500); }
+                            }
+                        }
+                        else if (d.type === 'observer_vert') {
+                            let targetZ = d.vert_direction === 'up_layer' ? z + 1 : z - 1;
+                            let state = false;
+                            if (targetZ >= 0 && targetZ < layersCount) state = gridData[`${x},${y},${targetZ}`].isPowered;
+
+                            if (state !== d.obsLastState) {
+                                d.obsLastState = state; if (!d.obsActive) { d.obsActive = true; needUpd = true; setTimeout(() => { d.obsActive = false; updateSystem(); }, 500); }
+                            }
+                        }
+                    }
+                }
+            }
+            if (needUpd) updateSystem();
+        }, 100);
+
+        // 3D ОХЛАЖДЕНИЕ И НАГРЕВ
+        setInterval(() => {
+            const cooled = new Set();
+            for (let z = 0; z < layersCount; z++) {
+                for (let y = 0; y < GRID_SIZE; y++) {
+                    for (let x = 0; x < GRID_SIZE; x++) {
+                        if (gridData[`${x},${y},${z}`].type === 'fan' && gridData[`${x},${y},${z}`].isPowered) {
+                            // Охлаждает цилиндром: слой над собой, свой слой и слой под собой!
+                            for (let dz = -1; dz <= 1; dz++) {
+                                for (let cy = -1; cy <= 1; cy++) {
+                                    for (let cx = -1; cx <= 1; cx++) cooled.add(`${x+cx},${y+cy},${z+dz}`);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            let heatChanged = false;
+            for (let z = 0; z < layersCount; z++) {
+                for (let y = 0; y < GRID_SIZE; y++) {
+                    for (let x = 0; x < GRID_SIZE; x++) {
+                        const d = gridData[`${x},${y},${z}`];
+                        if (d.type === 'empty' || d.isBurned) continue;
+
+                        const isCooled = cooled.has(`${x},${y},${z}`);
+                        if (d.type === 'fan') d.heat = 0;
+                        else if (d.isPowered && d.lastPower === 2) {
+                            if (isCooled) { if (d.heat > 0) { d.heat -= 12; heatChanged = true; } }
+                            else if (['wire', 'wire_vert', 'lamp', 'timer', 'observer', 'observer_vert', 'piston', 'sticky_piston', 'puller_piston'].includes(d.type)) { d.heat += 8; heatChanged = true; }
+                        } else {
+                            if (d.heat > 0) { d.heat -= isCooled ? 15 : 4; heatChanged = true; }
+                        }
+
+                        if (d.heat > 100) d.heat = 100; if (d.heat < 0) d.heat = 0;
+
+                        if (d.heat >= 100) { d.isBurned = true; if(z === currentZ) renderCellVisualData(x, y, z); updateSystem(); }
+                    }
+                }
+            }
+            if (heatChanged) renderVisuals();
+        }, 200);
+
+        // Старт
+        initDOMGrid(); initLayerData(0); renderFullLayer();
+    </script>
+</body>
+</html>
