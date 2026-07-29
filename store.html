@@ -213,6 +213,75 @@
             box-shadow: 0 4px 10px rgba(0,0,0,0.5);
             pointer-events: none;
         }
+
+        /* --- АДАПТИВНОСТЬ И УМЕНЬШЕНИЕ КНОПОК ДЛЯ ТЕЛЕФОНА --- */
+        @media (max-width: 768px) {
+            #ui-container {
+                top: 8px;
+                width: 95%;
+                gap: 5px;
+            }
+
+            .stats-bar {
+                padding: 6px 12px;
+                font-size: 12px;
+                gap: 10px;
+                border-radius: 10px;
+            }
+
+            .price-info {
+                padding: 3px 8px;
+                font-size: 10px;
+                border-radius: 12px;
+            }
+
+            .controls-bar {
+                transform: none; /* Убираем смещение, чтобы панели ровно лежали по центру */
+                gap: 5px;
+                width: 100%;
+                justify-content: center;
+            }
+
+            button.action-btn {
+                padding: 6px 10px;
+                font-size: 11px;
+                border-radius: 6px;
+            }
+
+            .upgrade-top-right {
+                top: 8px;
+                right: 8px;
+            }
+
+            .promo-bar {
+                bottom: 10px;
+                right: 10px;
+                padding: 4px 8px;
+            }
+
+            .promo-bar input {
+                width: 80px;
+                padding: 4px 6px;
+                font-size: 11px;
+            }
+
+            .promo-bar button {
+                padding: 4px 8px;
+                font-size: 11px;
+            }
+
+            #joystick-zone {
+                width: 90px;
+                height: 90px;
+                bottom: 15px;
+                left: 15px;
+            }
+
+            #joystick-knob {
+                width: 40px;
+                height: 40px;
+            }
+        }
     </style>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
