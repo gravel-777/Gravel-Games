@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grow your tree</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌳</text></svg>">
+    <style>
+        :root {
+            --bg-dark: #050811;
+            --panel-bg: #0f172a;
+            --card-bg: #1e293b;
+            --accent-green: #22c55e;
+            --accent-blue: #38bdf8;
+            --accent-gold: #f59e0b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
+        body { background: var(--bg-dark); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 20px; }
+
+        header { text-align: center; margin-bottom: 16px; }
+        header h1 { font-size: 2.2rem; background: linear-gradient(135deg, var(--accent-green), #4ade80); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        header p { color: var(--text-muted); font-size: 0.95rem; margin-top: 4px; }
+
+        .container {
+            width: 100%; max-width: 1100px; background: var(--panel-bg);
+            border: 1px solid #334155; border-radius: 20px; overflow: hidden;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8); display: flex; flex-direction: column;
+        }
+
+        /* Выбор дерева */
+        .tree-selector {
+            display: flex; gap: 10px; padding: 14px; background: #0b1120; border-bottom: 1px solid #1e293b;
+            overflow-x: auto;
+        }
+        .tree-btn {
+            background: var(--card-bg); border: 2px solid transparent; color: var(--text-main);
+            padding: 8px 16px; border-radius: 12px; cursor: pointer; display: flex; align-items: center; gap: 8px;
+            white-space: nowrap; transition: 0.2s; font-weight: 600; font-size: 0.9rem;
+        }
+        .tree-btn:hover { background: #334155; }
+        .tree-btn.active { border-color: var(--accent-green); background: rgba(34, 197, 94, 0.15); }
+
+        /* Поле игры */
+        .simulation-area { display: flex; flex-wrap: wrap; min-height: 540px; }
+
+        .canvas-container {
+            flex: 1 1 550px; background: #02040a; position: relative; display: flex; justify-content: center; align-items: center;
+        }
+        canvas { display: block; width: 100%; height: 100%; max-height: 560px; }
+
+        /* Переключатель сезона поверх Canvas */
+        .season-controls {
+            position: absolute; top: 14px; left: 14px; display: flex; gap: 6px;
+            background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px); padding: 4px; border-radius: 10px; border: 1px solid #334155;
+        }
+        .season-btn {
+            background: transparent; border: none; color: var(--text-muted); padding: 6px 10px;
+            border-radius: 6px; cursor: pointer; font-size: 0.8rem; font-weight: 600; transition: 0.2s;
+        }
+        .season-btn.active { background: var(--accent-green); color: #000; }
+
+        /* Метрики */
+        .metrics-panel {
+            flex: 1 1 380px; padding: 20px; display: flex; flex-direction: column; justify-content: space-between; gap: 16px;
+            background: var(--panel-bg); border-left: 1px solid #1e293b;
+        }
+
+        .year-display {
+            text-align: center; background: #0b1120; padding: 12px; border-radius: 14px; border: 1px solid #1e293b;
+        }
+        .year-display h2 { font-size: 2.6rem; color: var(--accent-green); font-weight: 800; line-height: 1; }
+        .year-display span { font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+
+        .slider-group { display: flex; flex-direction: column; gap: 8px; }
+        .slider-labels { display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-muted); font-weight: 600; }
+        .year-slider {
+            width: 100%; -webkit-appearance: none; height: 8px; border-radius: 4px; background: #334155; outline: none; cursor: pointer;
+        }
+        .year-slider::-webkit-slider-thumb {
+            -webkit-appearance: none; width: 22px; height: 22px; border-radius: 50%; background: var(--accent-green);
+            box-shadow: 0 0 10px var(--accent-green); cursor: pointer;
+        }
+
+        .quick-years { display: flex; gap: 6px; justify-content: space-between; }
+        .q-btn {
+            flex: 1; background: var(--card-bg); border: 1px solid #334155; color: #cbd5e1;
+            padding: 5px 0; border-radius: 6px; cursor: pointer; font-size: 0.8rem; font-weight: 600; transition: 0.2s;
+        }
+        .q-btn:hover { background: var(--accent-green); color: #000; }
+
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .stat-card {
+            background: #0b1120; padding: 10px 12px; border-radius: 10px; border: 1px solid #1e293b; display: flex; flex-direction: column; gap: 2px;
+        }
+        .stat-card .icon { font-size: 1rem; }
+        .stat-card .label { font-size: 0.7rem; color: var(--text-muted); }
+        .stat-card .value { font-size: 1.05rem; font-weight: bold; color: var(--text-main); }
+
+        .info-fact {
+            background: rgba(56, 189, 248, 0.08); border-left: 3px solid var(--accent-blue); padding: 10px; border-radius: 6px;
+            font-size: 0.8rem; line-height: 1.4; color: #cbd5e1;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>🌳 Реалистичный Симулятор Дерева</h1>
+    <p>Моделирование биологического роста, сезонности и экологических показателей</p>
+</header>
+
+<div class="container">
+
+    <div class="tree-selector">
+        <button class="tree-btn active" onclick="selectTree('oak')"><span>🌳</span> Дуб Черешчатый</button>
+        <button class="tree-btn" onclick="selectTree('spruce')"><span>🌲</span> Ель Обыкновенная</button>
+        <button class="tree-btn" onclick="selectTree('baobab')"><span>🪵</span> Баобаб</button>
+        <button class="tree-btn" onclick="selectTree('sakura')"><span>🌸</span> Сакура</button>
+        <button class="tree-btn" onclick="selectTree('redwood')"><span>🌲</span> Секвойя</button>
+    </div>
+
+    <div class="simulation-area">
+        <div class="canvas-container">
+            <div class="season-controls">
+                <button class="season-btn active" onclick="setSeason('spring')">🌱 Весна</button>
+                <button class="season-btn" onclick="setSeason('summer')">☀️ Лето</button>
+                <button class="season-btn" onclick="setSeason('autumn')">🍂 Осень</button>
+                <button class="season-btn" onclick="setSeason('winter')">❄️ Зима</button>
+            </div>
+            <canvas id="treeCanvas" width="600" height="560"></canvas>
+        </div>
+
+        <div class="metrics-panel">
+            <div class="year-display">
+                <h2 id="yearVal">1</h2>
+                <span>Год вегетации</span>
+            </div>
+
+            <div class="slider-group">
+                <div class="slider-labels">
+                    <span>1 год</span>
+                    <span>10 лет</span>
+                    <span>50 лет</span>
+                    <span>300 лет</span>
+                </div>
+                <input type="range" min="1" max="300" value="1" class="year-slider" id="timeSlider" oninput="updateTime(this.value)">
+
+                <div class="quick-years">
+                    <button class="q-btn" onclick="setTime(1)">1 год</button>
+                    <button class="q-btn" onclick="setTime(10)">10 лет</button>
+                    <button class="q-btn" onclick="setTime(50)">50 лет</button>
+                    <button class="q-btn" onclick="setTime(300)">300 лет</button>
+                </div>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="icon">💨</div>
+                    <div class="label">Выработано O₂</div>
+                    <div class="value" id="o2Val">0 кг</div>
+                </div>
+                <div class="stat-card">
+                    <div class="icon">🏭</div>
+                    <div class="label">Связано углерода (C)</div>
+                    <div class="value" id="carbonVal">0 кг</div>
+                </div>
+                <div class="stat-card">
+                    <div class="icon">⚖️</div>
+                    <div class="label">Сухая биомасса</div>
+                    <div class="value" id="biomassVal">0 кг</div>
+                </div>
+                <div class="stat-card">
+                    <div class="icon">🚗</div>
+                    <div class="label">Компенсация авто</div>
+                    <div class="value" id="carVal">0 км</div>
+                </div>
+                <div class="stat-card">
+                    <div class="icon">💧</div>
+                    <div class="label">Транспирация H₂O</div>
+                    <div class="value" id="waterVal">0 л</div>
+                </div>
+                <div class="stat-card">
+                    <div class="icon">📐</div>
+                    <div class="label">Высота / Диам. ствола</div>
+                    <div class="value" id="sizeVal">0 м</div>
+                </div>
+            </div>
+
+            <div class="info-fact" id="factBox">
+                Загрузка информации...
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const TREES = {
+    oak: {
+        name: 'Дуб Черешчатый',
+        maxHeight: 38,
+        maxTrunkDbh: 1.8, // Диаметр ствола в метрах
+        isEvergreen: false,
+        o2Rate: 130, carbonRate: 60, waterRate: 9000,
+        springColor: '#4ade80', summerColor: '#15803d', autumnColor: '#d97706', trunkColor: '#451a03',
+        fact: 'Реалистичный факт: Дуб наращивает 70% своей сухой биомассы в древесине ствола и скелетных ветвей, что делает его одним из лучших естественных хранилищ углерода.'
+    },
+    spruce: {
+        name: 'Ель Обыкновенная',
+        maxHeight: 45,
+        maxTrunkDbh: 1.2,
+        isEvergreen: true,
+        o2Rate: 100, carbonRate: 45, waterRate: 6000,
+        springColor: '#22c55e', summerColor: '#064e3b', autumnColor: '#064e3b', trunkColor: '#291d09',
+        fact: 'Реалистичный факт: Ели сохраняют хвою от 5 до 7 лет. Благодаря вечнозелености транспирация и фотосинтез начинаются сразу с наступлением первых оттепелей.'
+    },
+    baobab: {
+        name: 'Баобаб',
+        maxHeight: 20,
+        maxTrunkDbh: 4.5,
+        isEvergreen: false,
+        o2Rate: 160, carbonRate: 75, waterRate: 16000,
+        springColor: '#84cc16', summerColor: '#4d7c0f', autumnColor: '#a16207', trunkColor: '#78350f',
+        fact: 'Реалистичный факт: Древесина баобаба состоит из пористых волокон, удерживающих воду. Баобаб сбрасывает листья на время засухи, чтобы не терять влагу.'
+    },
+    sakura: {
+        name: 'Сакура (Вишня)',
+        maxHeight: 12,
+        maxTrunkDbh: 0.7,
+        isEvergreen: false,
+        o2Rate: 55, carbonRate: 25, waterRate: 4000,
+        springColor: '#f472b6', summerColor: '#db2777', autumnColor: '#ea580c', trunkColor: '#3b0764',
+        fact: 'Реалистичный факт: Цветение сакуры весной происходит до распускания основных листьев. Цветущая крона требует повышенного расхода питательных веществ.'
+    },
+    redwood: {
+        name: 'Секвойя',
+        maxHeight: 90,
+        maxTrunkDbh: 3.5,
+        isEvergreen: true,
+        o2Rate: 380, carbonRate: 170, waterRate: 25000,
+        springColor: '#16a34a', summerColor: '#14532d', autumnColor: '#14532d', trunkColor: '#581c87',
+        fact: 'Реалистичный факт: Секвойя имеет уникально толстую кору (до 30 см) с высоким содержанием танинов, защищающих её от лесных пожаров и насекомых-вредителей.'
+    }
+};
+
+let currentTreeKey = 'oak';
+let currentYear = 1;
+let currentSeason = 'summer';
+
+const canvas = document.getElementById('treeCanvas');
+const ctx = canvas.getContext('2d');
+
+function selectTree(key) {
+    currentTreeKey = key;
+    document.querySelectorAll('.tree-btn').forEach(btn => btn.classList.remove('active'));
+    event.currentTarget.classList.add('active');
+    updateVisuals();
+}
+
+function setSeason(season) {
+    currentSeason = season;
+    document.querySelectorAll('.season-btn').forEach(btn => btn.classList.remove('active'));
+    event.currentTarget.classList.add('active');
+    updateVisuals();
+}
+
+function setTime(val) {
+    document.getElementById('timeSlider').value = val;
+    updateTime(val);
+}
+
+function updateTime(val) {
+    currentYear = parseInt(val);
+    document.getElementById('yearVal').innerText = currentYear;
+    updateVisuals();
+}
+
+// Научная Сигмоидальная функция роста (S-curve)
+function getSigmoidGrowth(year, maxAge = 300) {
+    const k = 0.035; // Коэффициент скорости
+    const x0 = 45;   // Точка перегиба (пик роста)
+    return 1 / (1 + Math.exp(-k * (year - x0)));
+}
+
+function formatNum(num) {
+    if (num >= 1000000) return (num / 1000000).toFixed(2) + ' млн';
+    if (num >= 1000) return (num / 1000).toFixed(1) + ' тыс.';
+    return Math.round(num).toLocaleString('ru-RU');
+}
+
+function updateVisuals() {
+    const tree = TREES[currentTreeKey];
+
+    // Вычисление фактора роста
+    const growth = getSigmoidGrowth(currentYear);
+
+    // Кумулятивные экологические метрики
+    let totalO2 = 0;
+    let totalCarbon = 0;
+    let totalWater = 0;
+
+    for (let y = 1; y <= currentYear; y++) {
+        const g = getSigmoidGrowth(y);
+        totalO2 += tree.o2Rate * g;
+        totalCarbon += tree.carbonRate * g;
+        totalWater += tree.waterRate * g;
+    }
+
+    const currentHeight = (tree.maxHeight * growth).toFixed(1);
+    const currentDbh = (tree.maxTrunkDbh * growth * 100).toFixed(0); // В см
+    const dryBiomass = (totalCarbon * 2.1).toFixed(0); // Оценка биомассы
+    const carKm = (totalCarbon * 8.5).toFixed(0); // 1 кг C ≈ 8.5 км выхлопа авто
+
+    // Обновление элементов интерфейса
+    document.getElementById('o2Val').innerText = formatNum(totalO2) + ' кг';
+    document.getElementById('carbonVal').innerText = formatNum(totalCarbon) + ' кг';
+    document.getElementById('biomassVal').innerText = formatNum(dryBiomass) + ' кг';
+    document.getElementById('carVal').innerText = formatNum(carKm) + ' км';
+    document.getElementById('waterVal').innerText = formatNum(totalWater) + ' л';
+    document.getElementById('sizeVal').innerText = `${currentHeight}м / Ø${currentDbh}см`;
+    document.getElementById('factBox').innerText = tree.fact;
+
+    drawTree(growth);
+}
+
+function drawTree(growth) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    const tree = TREES[currentTreeKey];
+    const centerX = canvas.width / 2;
+    const groundY = canvas.height - 90;
+
+    // 1. Небо и Амосфера (в зависимости от сезона)
+    let skyGrad = ctx.createLinearGradient(0, 0, 0, groundY);
+    if (currentSeason === 'winter') {
+        skyGrad.addColorStop(0, '#0f172a'); skyGrad.addColorStop(1, '#334155');
+    } else if (currentSeason === 'autumn') {
+        skyGrad.addColorStop(0, '#1c1917'); skyGrad.addColorStop(1, '#44403c');
+    } else {
+        skyGrad.addColorStop(0, '#02040a'); skyGrad.addColorStop(1, '#1e293b');
+    }
+    ctx.fillStyle = skyGrad;
+    ctx.fillRect(0, 0, canvas.width, groundY);
+
+    // 2. Земля
+    ctx.fillStyle = currentSeason === 'winter' ? '#e2e8f0' : '#111827';
+    ctx.fillRect(0, groundY, canvas.width, canvas.height - groundY);
+    ctx.fillStyle = currentSeason === 'winter' ? '#ffffff' : (currentSeason === 'autumn' ? '#b45309' : '#166534');
+    ctx.fillRect(0, groundY, canvas.width, 6);
+
+    // 3. Корневая система (динамическая разветвленность)
+    ctx.strokeStyle = '#374151';
+    ctx.lineWidth = Math.max(2, 10 * growth);
+    ctx.beginPath();
+    ctx.moveTo(centerX, groundY);
+    ctx.lineTo(centerX - 50 * growth, groundY + 50 * growth);
+    ctx.moveTo(centerX, groundY);
+    ctx.lineTo(centerX + 60 * growth, groundY + 60 * growth);
+    ctx.moveTo(centerX - 10, groundY);
+    ctx.lineTo(centerX - 25 * growth, groundY + 75 * growth);
+    ctx.stroke();
+
+    // Размеры отрисовки
+    let trunkHeight = 300 * growth;
+    let trunkWidth = (tree.maxTrunkDbh * 22) * growth + 4;
+    let crownRadius = 95 * growth;
+
+    if (currentTreeKey === 'baobab') {
+        trunkWidth = 65 * growth + 10;
+        trunkHeight = 210 * growth;
+        crownRadius = 80 * growth;
+    } else if (currentTreeKey === 'redwood') {
+        trunkHeight = 390 * growth;
+        trunkWidth = 40 * growth + 6;
+        crownRadius = 65 * growth;
+    }
+
+    const treeTopY = groundY - trunkHeight;
+
+    // 4. Ствол с реалистичной корой
+    ctx.fillStyle = tree.trunkColor;
+    ctx.beginPath();
+    ctx.moveTo(centerX - trunkWidth, groundY);
+    ctx.lineTo(centerX + trunkWidth, groundY);
+    ctx.lineTo(centerX + trunkWidth * 0.4, treeTopY);
+    ctx.lineTo(centerX - trunkWidth * 0.4, treeTopY);
+    ctx.closePath();
+    ctx.fill();
+
+    // Дупло/Текстура для старых деревьев (> 60 лет)
+    if (currentYear > 60 && currentTreeKey !== 'redwood') {
+        ctx.fillStyle = '#000000';
+        ctx.beginPath();
+        ctx.ellipse(centerX, groundY - trunkHeight * 0.3, trunkWidth * 0.25, 12 * growth, 0, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    // 5. Цвет кроны по сезону
+    let foliageColor = tree.summerColor;
+    let showFoliage = true;
+
+    if (currentSeason === 'spring') foliageColor = tree.springColor;
+    else if (currentSeason === 'autumn') foliageColor = tree.autumnColor;
+    else if (currentSeason === 'winter') {
+        if (!tree.isEvergreen) showFoliage = false; // Лиственные деревья зимой без листьев
+        else foliageColor = '#1e3a8a'; // Снежная/темная хвоя
+    }
+
+    // 6. Отрисовка Кроны
+    if (showFoliage) {
+        ctx.fillStyle = foliageColor;
+
+        if (currentTreeKey === 'spruce') {
+            const tiers = 5;
+            for (let i = 0; i < tiers; i++) {
+                const tierY = groundY - (trunkHeight * 0.25) - (i * (trunkHeight * 0.16));
+                const tierWidth = (crownRadius * 1.6) * (1 - i * 0.18);
+                ctx.beginPath();
+                ctx.moveTo(centerX - tierWidth, tierY);
+                ctx.lineTo(centerX + tierWidth, tierY);
+                ctx.lineTo(centerX, tierY - 55 * growth);
+                ctx.closePath();
+                ctx.fill();
+
+                // Снег на ветках ели зимой
+                if (currentSeason === 'winter') {
+                    ctx.fillStyle = '#ffffff';
+                    ctx.beginPath();
+                    ctx.moveTo(centerX - tierWidth * 0.8, tierY);
+                    ctx.lineTo(centerX + tierWidth * 0.8, tierY);
+                    ctx.lineTo(centerX, tierY - 15 * growth);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.fillStyle = foliageColor;
+                }
+            }
+        } else if (currentTreeKey === 'baobab') {
+            ctx.beginPath();
+            ctx.arc(centerX - 45 * growth, treeTopY - 10, crownRadius * 0.55, 0, Math.PI * 2);
+            ctx.arc(centerX + 45 * growth, treeTopY - 10, crownRadius * 0.55, 0, Math.PI * 2);
+            ctx.arc(centerX, treeTopY - 35 * growth, crownRadius * 0.65, 0, Math.PI * 2);
+            ctx.fill();
+        } else {
+            // Лиственные пышные деревья (Дуб, Сакура, Секвойя)
+            ctx.beginPath();
+            ctx.arc(centerX, treeTopY - 15 * growth, crownRadius, 0, Math.PI * 2);
+            ctx.arc(centerX - crownRadius * 0.55, treeTopY + 15 * growth, crownRadius * 0.65, 0, Math.PI * 2);
+            ctx.arc(centerX + crownRadius * 0.55, treeTopY + 15 * growth, crownRadius * 0.65, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    } else {
+        // Зимние оголенные ветви для лиственных деревьев
+        ctx.strokeStyle = tree.trunkColor;
+        ctx.lineWidth = Math.max(1, 4 * growth);
+        ctx.beginPath();
+        ctx.moveTo(centerX, treeTopY);
+        ctx.lineTo(centerX - 40 * growth, treeTopY - 30 * growth);
+        ctx.moveTo(centerX, treeTopY);
+        ctx.lineTo(centerX + 45 * growth, treeTopY - 35 * growth);
+        ctx.moveTo(centerX, treeTopY + 30 * growth);
+        ctx.lineTo(centerX - 60 * growth, treeTopY + 10 * growth);
+        ctx.stroke();
+    }
+
+    // 7. Тень от дерева
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+    ctx.beginPath();
+    ctx.ellipse(centerX, groundY + 12, crownRadius + 15, 8, 0, 0, Math.PI * 2);
+    ctx.fill();
+}
+
+// Запуск при старте
+updateVisuals();
+</script>
+
+</body>
+</html>
